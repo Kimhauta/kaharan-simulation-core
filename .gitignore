@@ -1,0 +1,32 @@
+# Visual Studio & Windows
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+x64/
+x86/
+Debug/
+Release/
+
+# CMake & Build artifacts
+build/
+bin/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.dll
+*.so
+*.dylib
+
+# Godot 4
+godot_project/.godot/
+godot_project/bin/
+*.translation
+
+# OS metadata
+.DS_Store
+Thumbs.db

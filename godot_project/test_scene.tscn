@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://e7ubdq2qg7u"]
+
+[ext_resource type="Script" uid="uid://bnsbfpmhsyldc" path="res://test_scene.gd" id="1_uhqqe"]
+
+[node name="Node3D" type="Node3D" unique_id=1543344716]
+script = ExtResource("1_uhqqe")
+
+[node name="SimulationBridge" type="SimulationBridge" parent="." unique_id=1568931885]

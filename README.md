@@ -10,28 +10,31 @@ Developed as an engineering thesis project at **Lapin AMK** (Lapland University 
 
 The system is decoupled into three isolated layers:
 
-+-------------------------------------------------------------------+
-|               1. Pure C++ Core (Simulation Core)                  |
-|  - Headless & cache-coherent Structure-of-Arrays (SoA) registry   |
-|  - Zero engine dependencies, 12-byte aligned math primitives      |
-|  - Auto-vectorized linear physics compute loops (__restrict)      |
-+-------------------------------------------------------------------+
-|
-v
-+-------------------------------------------------------------------+
-|                 2. GDExtension Bridge Layer                       |
-|  - Minimal C-ABI entry point binding to Godot 4 ClassDB           |
-|  - Direct batch synchronization into Godot MultiMesh buffers      |
-|  - High-precision telemetry (std::chrono microsecond timing)      |
-+-------------------------------------------------------------------+
-|
-v
-+-------------------------------------------------------------------+
-|                   3. Godot 4 Presentation Layer                   |
-|  - Hardware-accelerated GPU instancing (MultiMeshInstance3D)      |
-|  - 1 draw call for thousands of entities                          |
-|  - GDScript telemetry monitoring & visual feedback                |
-+-------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    subgraph Core["1. Pure C++ Core (Simulation Core)"]
+        direction TB
+        A1["Headless & cache-coherent Structure-of-Arrays (SoA) registry"]
+        A2["Zero engine dependencies, 12-byte aligned math primitives"]
+        A3["Auto-vectorized linear physics compute loops (__restrict)"]
+    end
+
+    subgraph Bridge["2. GDExtension Bridge Layer"]
+        direction TB
+        B1["Minimal C-ABI entry point binding to Godot 4 ClassDB"]
+        B2["Direct batch synchronization into Godot MultiMesh buffers"]
+        B3["High-precision telemetry (std::chrono microsecond timing)"]
+    end
+
+    subgraph Godot["3. Godot 4 Presentation Layer"]
+        direction TB
+        C1["Hardware-accelerated GPU instancing (MultiMeshInstance3D)"]
+        C2["1 draw call for thousands of entities"]
+        C3["GDScript telemetry monitoring & visual feedback"]
+    end
+
+    Core --> Bridge --> Godot
+```
 
 ### Key Architectural Highlights
 * **Structure-of-Arrays (SoA) Registry:** Entity data (`positions`, `velocities`, `SimulationLOD`) is held in packed contiguous memory vectors. Updating 5,000 entities reads uninterrupted 12-byte blocks, preventing CPU cache misses and pointer dereferencing overhead.

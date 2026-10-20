@@ -5,8 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Staattinen C++ Runtime Library (/MT Release, /MTd Debug)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# Hiljennetään godot-cpp:n sisäinen varoituskohina (C4244, C4100, C4267)
 if(MSVC)
-    add_compile_options(/W4 /permissive- /utf-8)
+    add_compile_options(/wd4244 /wd4100 /wd4267 /utf-8)
 endif()
 
 # ==============================================================================
@@ -21,6 +25,10 @@ target_include_directories(simulation_core PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 
+if(MSVC)
+    target_compile_options(simulation_core PRIVATE /W4 /permissive-)
+endif()
+
 # ==============================================================================
 # 2. STANDALONE BENCHMARK RUNNER (CLI A/B-testit)
 # ==============================================================================
@@ -32,6 +40,10 @@ target_link_libraries(simulation_benchmark PRIVATE
     simulation_core
 )
 
+if(MSVC)
+    target_compile_options(simulation_benchmark PRIVATE /W4 /permissive-)
+endif()
+
 # ==============================================================================
 # 3. GODOT-CPP SUBMODULE & GDEXTENSION BRIDGE
 # ==============================================================================
@@ -40,7 +52,6 @@ set(GODOTCPP_DEFAULT_API_VERSION "4.6" CACHE STRING "Godot Default API Version")
 
 add_subdirectory(extern/godot-cpp)
 
-# Siltaan kuuluvat VAIN register_types.cpp ja simulation_bridge.cpp
 add_library(simulation_bridge SHARED
     bridge/src/register_types.cpp
     bridge/src/simulation_bridge.cpp
@@ -56,7 +67,6 @@ target_link_libraries(simulation_bridge PRIVATE
     godot::cpp
 )
 
-# Varmistetaan, että tulostuskansio on olemassa MSVC-linkittäjää varten
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/godot_project/bin")
 
 set_target_properties(simulation_bridge PROPERTIES

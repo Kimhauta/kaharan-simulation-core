@@ -151,11 +151,11 @@ func _process(_delta: float) -> void:
 ```
 
 ## Roadmap & Thesis Milestones
-[x] Pure C++ Structure-of-Arrays (SoA) entity registry
-[x] Vectorized contiguous memory simulation loop
-[x] Standalone CLI micro-benchmarking suite
-[x] GDExtension bridge binding to Godot 4.6
-[x] Single-draw-call GPU visualization via MultiMeshInstance3D
-[ ] Direct A/B baseline comparison against traditional Godot Node3D SceneTree hierarchies
-[ ] Simulation Level-of-Detail (Simulation LOD) and amortized scheduling
-[ ] Empirical thesis evaluation chapter and CSV dataset export
+- [x] Pure C++ Structure-of-Arrays (SoA) entity registry
+- [x] Vectorized contiguous memory simulation loop
+- [x] Standalone CLI micro-benchmarking suite
+- [x] GDExtension bridge binding to Godot 4.6
+- [x] Single-draw-call GPU visualization via MultiMeshInstance3D
+- [ ] Direct A/B baseline comparison against traditional Godot Node3D SceneTree hierarchies
+- [ ] Simulation Level-of-Detail (Simulation LOD) and amortized scheduling
+- [ ] Empirical thesis evaluation chapter and CSV dataset export

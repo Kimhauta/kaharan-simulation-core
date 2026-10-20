@@ -1,34 +1,29 @@
-extends Node
+extends Node3D
 
 @onready var bridge: SimulationBridge = $SimulationBridge
+@onready var mmi: MultiMeshInstance3D = $MultiMeshInstance3D
+
 var print_timer: float = 0.0
 
 func _ready() -> void:
-	if bridge:
-		print("[Godot] Yhteys muodostettu: ", bridge.get_bridge_version())
-		# Luodaan 5 000 agenttia C++ -ytimen SoA-puskuriin
+	if bridge and mmi:
+		# Luodaan 5 000 agenttia C++ SoA -puskuriin
 		bridge.spawn_agents(5000)
-		print("[Godot] Agentteja aktiivisena: ", bridge.get_agent_count())
+		print("[Visualisointi] 5 000 agenttia alustettu ja kytketty MultiMeshiin.")
 	else:
-		printerr("[Godot Virhe] SimulationBridge-solmua ei löydy skenepuusta!")
+		printerr("SimulationBridge tai MultiMeshInstance3D puuttuu skenestä!")
 
 func _process(delta: float) -> void:
-	if not bridge:
+	if not bridge or not mmi:
 		return
 		
-	# Tulostetaan simulaation tila kerran sekunnissa
+	# Synkronoidaan kaikki 5 000 sijaintia C++:sta suoraan GPU-puskuriin
+	bridge.sync_to_multimesh(mmi.multimesh)
+
+	# Tulostetaan profilointiluvut kerran sekunnissa
 	print_timer += delta
 	if print_timer >= 1.0:
 		print_timer = 0.0
-		var count = bridge.get_agent_count()
 		var tick_us = bridge.get_last_tick_microseconds()
-		var p0 = bridge.get_agent_position(0)
-		
-		print("Agentteja: %d | C++ tick: %.2f us (%.4f ms) | Agentti 0 sijainti: (%.2f, %.2f, %.2f)" % [
-			count, 
-			tick_us, 
-			tick_us / 1000.0, 
-			p0.x, 
-			p0.y, 
-			p0.z
-		])
+		var fps = Engine.get_frames_per_second()
+		print("FPS: %d | C++ tick: %.2f us (%.4f ms)" % [fps, tick_us, tick_us / 1000.0])

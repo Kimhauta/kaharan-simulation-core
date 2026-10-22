@@ -30,8 +30,8 @@ namespace kaharan::bridge {
         [[nodiscard]] godot::Vector3 get_agent_position(int p_index) const;
         [[nodiscard]] double get_last_tick_microseconds() const;
 
-        // Kopioi SoA-sijainnit suoraan Godotin MultiMesh-puskuriin
         void sync_to_multimesh(godot::Ref<godot::MultiMesh> p_multimesh);
+        void sync_to_multimesh_range(godot::Ref<godot::MultiMesh> p_multimesh, int p_start_index, int p_count);
 
         [[nodiscard]] godot::String get_bridge_version() const;
     };

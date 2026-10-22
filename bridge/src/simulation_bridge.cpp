@@ -3,6 +3,11 @@
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
+#include <godot_cpp/variant/packed_float32_array.hpp>
+#include <godot_cpp/classes/multi_mesh.hpp>
+
+#include <chrono>
+#include <cstring> // For std::memcpy
 
 namespace kaharan::bridge {
 
@@ -14,6 +19,7 @@ namespace kaharan::bridge {
         godot::ClassDB::bind_method(godot::D_METHOD("get_agent_position", "index"), &SimulationBridge::get_agent_position);
         godot::ClassDB::bind_method(godot::D_METHOD("get_last_tick_microseconds"), &SimulationBridge::get_last_tick_microseconds);
         godot::ClassDB::bind_method(godot::D_METHOD("sync_to_multimesh", "multimesh"), &SimulationBridge::sync_to_multimesh);
+        godot::ClassDB::bind_method(godot::D_METHOD("sync_to_multimesh_range", "multimesh", "start_index", "count"), &SimulationBridge::sync_to_multimesh_range);
     }
 
     SimulationBridge::SimulationBridge() = default;
@@ -59,37 +65,67 @@ namespace kaharan::bridge {
         return m_last_tick_us;
     }
 
+    godot::String SimulationBridge::get_bridge_version() const {
+        return "Kaharan Simulation Core v0.1.0 (C++20 SoA)";
+    }
+
     void SimulationBridge::sync_to_multimesh(godot::Ref<godot::MultiMesh> p_multimesh) {
-        if (p_multimesh.is_null()) {
-            return;
-        }
+        if (p_multimesh.is_null()) return;
 
         const auto& reg = m_world.get_registry();
         const size_t total = reg.size();
-        if (total == 0) {
-            return;
-        }
+        if (total == 0) return;
 
-        // Ensure MultiMesh configuration matches the entity buffer dimensions
+        // Enforce 12-float layout without resetting GPU buffers every frame
         if (p_multimesh->get_transform_format() != godot::MultiMesh::TRANSFORM_3D) {
             p_multimesh->set_transform_format(godot::MultiMesh::TRANSFORM_3D);
         }
+        if (p_multimesh->is_using_colors()) p_multimesh->set_use_colors(false);
+        if (p_multimesh->is_using_custom_data()) p_multimesh->set_use_custom_data(false);
+
         if (p_multimesh->get_instance_count() != static_cast<int64_t>(total)) {
             p_multimesh->set_instance_count(static_cast<int64_t>(total));
         }
 
-        const kaharan::core::Vec3* positions = reg.get_positions_data();
+        // Direct memcpy pass
+        const float* raw_transforms = reg.get_raw_float_data();
+        const size_t total_floats = total * 12;
 
-        // Fast-path synchronization: direct memory writes to Godot's GPU instance transforms
-        for (size_t i = 0; i < total; ++i) {
-            godot::Transform3D t;
-            t.origin = godot::Vector3(positions[i].x, positions[i].y, positions[i].z);
-            p_multimesh->set_instance_transform(static_cast<int32_t>(i), t);
-        }
+        godot::PackedFloat32Array buffer;
+        buffer.resize(static_cast<int64_t>(total_floats));
+        std::memcpy(buffer.ptrw(), raw_transforms, total_floats * sizeof(float));
+
+        p_multimesh->set_buffer(buffer);
     }
 
-    godot::String SimulationBridge::get_bridge_version() const {
-        return "Kaharan Simulation Core v0.1.0 (C++20 SoA)";
+    void SimulationBridge::sync_to_multimesh_range(godot::Ref<godot::MultiMesh> p_multimesh, int p_start_index, int p_count) {
+        if (p_multimesh.is_null() || p_count <= 0) return;
+
+        const auto& registry = m_world.get_registry();
+        const int total_entities = static_cast<int>(registry.size());
+        if (p_start_index < 0 || p_start_index >= total_entities) return;
+
+        const int actual_count = (p_start_index + p_count > total_entities) ? (total_entities - p_start_index) : p_count;
+
+        if (p_multimesh->get_transform_format() != godot::MultiMesh::TRANSFORM_3D) {
+            p_multimesh->set_transform_format(godot::MultiMesh::TRANSFORM_3D);
+        }
+        if (p_multimesh->is_using_colors()) p_multimesh->set_use_colors(false);
+        if (p_multimesh->is_using_custom_data()) p_multimesh->set_use_custom_data(false);
+
+        if (p_multimesh->get_instance_count() != actual_count) {
+            p_multimesh->set_instance_count(actual_count);
+        }
+
+        // Slice offset pointer: 12 floats per entity offset
+        const float* raw_transforms_slice = registry.get_raw_float_data() + (static_cast<size_t>(p_start_index) * 12);
+        const size_t total_floats = static_cast<size_t>(actual_count) * 12;
+
+        godot::PackedFloat32Array buffer;
+        buffer.resize(static_cast<int64_t>(total_floats));
+        std::memcpy(buffer.ptrw(), raw_transforms_slice, total_floats * sizeof(float));
+
+        p_multimesh->set_buffer(buffer);
     }
 
 } // namespace kaharan::bridge

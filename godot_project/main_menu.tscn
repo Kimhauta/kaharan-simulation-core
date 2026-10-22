@@ -1,0 +1,94 @@
+[gd_scene format=3 uid="uid://blp2tjie4ejhs"]
+
+[ext_resource type="Script" uid="uid://2slkrbbtxjvu" path="res://main_menu.gd" id="1_06t4h"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_06t4h"]
+font_size = 32
+outline_size = 4
+
+[node name="MainMenu" type="Control" unique_id=759439234]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_06t4h")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=679709945]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.07058824, 0.07058824, 0.07058824, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=947131227]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1647641073]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -225.5
+offset_top = -116.0
+offset_right = 225.5
+offset_bottom = 116.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=1832716464]
+layout_mode = 2
+text = "KAHARAN SIMULATION CORE"
+label_settings = SubResource("LabelSettings_06t4h")
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="VBoxContainer" unique_id=1552064096]
+layout_mode = 2
+text = "DOD Simulation Engine & GDExtension Benchmark Demo"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer" unique_id=739836943]
+layout_mode = 2
+
+[node name="BtnInteractive" type="Button" parent="VBoxContainer" unique_id=788136735]
+layout_mode = 2
+text = "Start interactive demo
+"
+
+[node name="BtnBenchmark" type="Button" parent="VBoxContainer" unique_id=1030811277]
+layout_mode = 2
+text = "Run Automated A/B Benchmark"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=734663626]
+layout_mode = 2
+
+[node name="VSyncCheck" type="CheckButton" parent="VBoxContainer/HBoxContainer" unique_id=1204172713]
+layout_mode = 2
+text = "V-Sync Enabled"
+
+[node name="DataPanel" type="PanelContainer" parent="VBoxContainer" unique_id=187573712]
+layout_mode = 2
+
+[node name="ResultsLabel" type="RichTextLabel" parent="VBoxContainer/DataPanel" unique_id=329647749]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer" unique_id=1263355121]
+layout_mode = 2
+
+[node name="BtnQuit" type="Button" parent="VBoxContainer" unique_id=1011066099]
+layout_mode = 2
+text = "Quit Application"
+
+[connection signal="pressed" from="VBoxContainer/BtnInteractive" to="." method="_on_btn_interactive_pressed"]
+[connection signal="pressed" from="VBoxContainer/BtnBenchmark" to="." method="_on_btn_benchmark_pressed"]
+[connection signal="toggled" from="VBoxContainer/HBoxContainer/VSyncCheck" to="." method="_on_v_sync_check_toggled"]
+[connection signal="pressed" from="VBoxContainer/BtnQuit" to="." method="_on_btn_quit_pressed"]

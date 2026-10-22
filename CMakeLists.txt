@@ -5,16 +5,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Staattinen C++ Runtime Library (/MT Release, /MTd Debug)
+# Static C++ Runtime Library (/MT Release, /MTd Debug)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# Hiljennetään godot-cpp:n sisäinen varoituskohina (C4244, C4100, C4267)
+# Suppress godot-cpp internal warnings (C4244, C4100, C4267)
 if(MSVC)
     add_compile_options(/wd4244 /wd4100 /wd4267 /utf-8)
 endif()
 
 # ==============================================================================
-# 1. PURE C++ SIMULATION CORE (Headless, nolla Godot-riippuvuutta)
+# 1. PURE C++ SIMULATION CORE (Headless, zero Godot dependency)
 # ==============================================================================
 add_library(simulation_core STATIC
     core/src/simulation.cpp
@@ -30,7 +30,7 @@ if(MSVC)
 endif()
 
 # ==============================================================================
-# 2. STANDALONE BENCHMARK RUNNER (CLI A/B-testit)
+# 2. STANDALONE BENCHMARK RUNNER (CLI A/B-tests)
 # ==============================================================================
 add_executable(simulation_benchmark
     benchmark/src/main_bench.cpp

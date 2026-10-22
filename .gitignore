@@ -30,3 +30,6 @@ godot_project/bin/
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Local telemetry and settings files
+user_files/

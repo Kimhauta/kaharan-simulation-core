@@ -11,4 +11,13 @@ config_version=5
 [application]
 
 config/name="Kaharan Simulation Core"
+run/main_scene="uid://blp2tjie4ejhs"
 config/features=PackedStringArray("4.6")
+
+[autoload]
+
+GameSettings="*uid://cx65m3pqy3puq"
+
+[display]
+
+window/vsync/vsync_mode=0

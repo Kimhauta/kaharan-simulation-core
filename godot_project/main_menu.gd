@@ -42,7 +42,7 @@ func _load_benchmark_summary() -> void:
 	results_label.bbcode_enabled = true
 	results_label.custom_minimum_size = Vector2(560, 220)
 		
-	var path = "res://benchmark_summary.dat"
+	var path = "res://user_files/benchmark_summary.dat"
 	if not FileAccess.file_exists(path):
 		results_label.text = "[color=gray]No benchmark results found yet. Click 'Run Automated A/B Benchmark' to start.[/color]"
 		return

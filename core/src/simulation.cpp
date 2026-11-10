@@ -6,14 +6,30 @@ namespace kaharan::core {
     void SimulationWorld::spawn_test_agents(size_t count) {
         m_registry.clear();
         m_registry.reserve(count);
+        m_rng.seed(1337); // Nollataan siemenluku vain täydessä uudelleenalustuksessa
 
-        std::mt19937 rng(1337);
         std::uniform_real_distribution<float> pos_dist(-45.0f, 45.0f);
         std::uniform_real_distribution<float> vel_dist(-8.0f, 8.0f);
 
         for (size_t i = 0; i < count; ++i) {
-            Vec3 pos{ pos_dist(rng), 0.0f, pos_dist(rng) };
-            Vec3 vel{ vel_dist(rng), 0.0f, vel_dist(rng) };
+            Vec3 pos{ pos_dist(m_rng), 0.0f, pos_dist(m_rng) };
+            Vec3 vel{ vel_dist(m_rng), 0.0f, vel_dist(m_rng) };
+            m_registry.create_entity(pos, vel, SimulationLOD::LOD0_Full);
+        }
+    }
+
+    void SimulationWorld::add_test_agents(size_t count) {
+        if (count == 0) return;
+
+        size_t current = m_registry.size();
+        m_registry.reserve(current + count);
+
+        std::uniform_real_distribution<float> pos_dist(-45.0f, 45.0f);
+        std::uniform_real_distribution<float> vel_dist(-8.0f, 8.0f);
+
+        for (size_t i = 0; i < count; ++i) {
+            Vec3 pos{ pos_dist(m_rng), 0.0f, pos_dist(m_rng) };
+            Vec3 vel{ vel_dist(m_rng), 0.0f, vel_dist(m_rng) };
             m_registry.create_entity(pos, vel, SimulationLOD::LOD0_Full);
         }
     }

@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://k5v70qolkk2j"]
+
+[ext_resource type="Script" uid="uid://dpgjyk0blybbr" path="res://greybox_level.gd" id="1_ukmva"]
+
+[node name="GreyboxLevel" type="Control" unique_id=553213543]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_ukmva")

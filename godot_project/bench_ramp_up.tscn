@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://xbfdhug5pb24"]
+
+[ext_resource type="Script" uid="uid://dh83j7x6n5caj" path="res://bench_ramp_up.gd" id="1_q15op"]
+
+[node name="BenchRampUp" type="Control" unique_id=1649129257]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_q15op")

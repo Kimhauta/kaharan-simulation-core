@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bqc01ii618bd2"]
+
+[ext_resource type="Script" uid="uid://dsfxotph5foe3" path="res://bench_synthetic_headless.gd" id="1_j5wko"]
+
+[node name="BenchSyntheticHeadless" type="Node3D" unique_id=215030432]
+script = ExtResource("1_j5wko")
+
+[node name="SimulationBridge" type="SimulationBridge" parent="." unique_id=1707987471]
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="." unique_id=1889486253]

@@ -1,72 +1,50 @@
 extends Control
 
-const BENCHMARK_SCENE_PATH = "res://test_scene.tscn"
-const INTERACTIVE_SCENE_PATH = "res://interactive_demo.tscn"
+const PLAYABLE_SCENE_PATH = "res://greybox_level.tscn"
+const BENCHMARK_HUB_PATH = "res://benchmark_hub.tscn"
+const RESULTS_SCENE_PATH = "res://benchmark_results.tscn"
+const SETTINGS_SCENE_PATH = "res://settings_menu.tscn"
 
-@onready var vsync_check: CheckButton = find_child("VSyncCheck", true, false) as CheckButton
-@onready var results_label: RichTextLabel = find_child("ResultsLabel", true, false) as RichTextLabel
+@onready var btn_play: Button = find_child("BtnPlay", true, false) as Button
+@onready var btn_benchmark: Button = find_child("BtnBenchmark", true, false) as Button
+@onready var btn_results: Button = find_child("BtnResults", true, false) as Button
+@onready var btn_settings: Button = find_child("BtnSettings", true, false) as Button
+@onready var btn_quit: Button = find_child("BtnQuit", true, false) as Button
+@onready var status_label: Label = find_child("StatusLabel", true, false) as Label
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	
-	if vsync_check:
-		# Asetetaan kytkimen tila ilman että signaali laukeaa turhaan
-		vsync_check.set_pressed_no_signal(GameSettings.vsync_enabled)
-		
-	_load_benchmark_summary()
+	if btn_play and not btn_play.pressed.is_connected(_on_btn_play_pressed):
+		btn_play.pressed.connect(_on_btn_play_pressed)
+	if btn_benchmark and not btn_benchmark.pressed.is_connected(_on_btn_benchmark_pressed):
+		btn_benchmark.pressed.connect(_on_btn_benchmark_pressed)
+	if btn_results and not btn_results.pressed.is_connected(_on_btn_results_pressed):
+		btn_results.pressed.connect(_on_btn_results_pressed)
+	if btn_settings and not btn_settings.pressed.is_connected(_on_btn_settings_pressed):
+		btn_settings.pressed.connect(_on_btn_settings_pressed)
+	if btn_quit and not btn_quit.pressed.is_connected(_on_btn_quit_pressed):
+		btn_quit.pressed.connect(_on_btn_quit_pressed)
 
-func _on_btn_interactive_pressed() -> void:
-	if ResourceLoader.exists(INTERACTIVE_SCENE_PATH):
-		get_tree().change_scene_to_file(INTERACTIVE_SCENE_PATH)
-	else:
-		if results_label:
-			results_label.text = "[color=orange]Interactive demo scene not created yet. Coming in Phase 2![/color]"
+func _on_btn_play_pressed() -> void:
+	_change_scene_safe(PLAYABLE_SCENE_PATH, "Interactive demo scene (greybox_level.tscn) not created yet.")
 
 func _on_btn_benchmark_pressed() -> void:
-	get_tree().change_scene_to_file(BENCHMARK_SCENE_PATH)
+	_change_scene_safe(BENCHMARK_HUB_PATH, "Benchmark scene not found.")
 
-func _on_v_sync_check_toggled(toggled_on: bool) -> void:
-	GameSettings.set_vsync(toggled_on)
-	print("[MainMenu] V-Sync saved & set to: ", toggled_on)
+func _on_btn_results_pressed() -> void:
+	_change_scene_safe(RESULTS_SCENE_PATH, "Results scene (benchmark_results.tscn) not created yet.")
 
-func _on_vsync_check_toggled(toggled_on: bool) -> void:
-	_on_v_sync_check_toggled(toggled_on)
+func _on_btn_settings_pressed() -> void:
+	_change_scene_safe(SETTINGS_SCENE_PATH, "Settings scene (settings_menu.tscn) not created yet.")
 
 func _on_btn_quit_pressed() -> void:
 	get_tree().quit()
 
-func _load_benchmark_summary() -> void:
-	if not results_label:
-		return
-		
-	results_label.bbcode_enabled = true
-	results_label.custom_minimum_size = Vector2(560, 220)
-		
-	var path = "res://user_files/benchmark_summary.dat"
-	if not FileAccess.file_exists(path):
-		results_label.text = "[color=gray]No benchmark results found yet. Click 'Run Automated A/B Benchmark' to start.[/color]"
-		return
-		
-	var file = FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return
-
-	var _header = file.get_line()
-	
-	var out_text = "[b]LATEST BENCHMARK RESULTS (1-Mesh vs 5-Mesh DOD vs OOP):[/b]\n[code]"
-	out_text += "%-15s | %-7s | %-9s | %-11s | %-11s\n" % ["CONFIG", "COUNT", "AVG FPS", "LOGIC (us)", "TOTAL (us)"]
-	out_text += "-----------------------------------------------------------------\n"
-	
-	while not file.eof_reached():
-		var line = file.get_line().strip_edges()
-		if line == "":
-			continue
-		var parts = line.split(",")
-		if parts.size() >= 10:
-			out_text += "%-15s | %-7s | %-9s | %-11s | %-11s\n" % [
-				parts[0], parts[1], parts[3], parts[5] + " us", parts[9] + " us"
-			]
-			
-	out_text += "[/code]"
-	file.close()
-	results_label.text = out_text
+func _change_scene_safe(target_path: String, fallback_msg: String) -> void:
+	if ResourceLoader.exists(target_path):
+		get_tree().change_scene_to_file(target_path)
+	else:
+		if status_label:
+			status_label.text = fallback_msg
+		print("[MainMenu] Warning: ", fallback_msg)

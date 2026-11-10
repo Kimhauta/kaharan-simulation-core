@@ -1,0 +1,246 @@
+[gd_scene format=3 uid="uid://dfge1cneiaeqk"]
+
+[ext_resource type="Script" uid="uid://bunnxoentvmfc" path="res://benchmark_hub.gd" id="1_i0sa5"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_l03eg"]
+font_size = 22
+
+[sub_resource type="LabelSettings" id="LabelSettings_i0sa5"]
+
+[node name="BenchmarkHub" type="Control" unique_id=663543889]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_i0sa5")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1173364444]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.050980393, 0.06666667, 0.09019608, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="Background" unique_id=1929426741]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background/MarginContainer" unique_id=1243735375]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="HeaderBar" type="HBoxContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=1553888561]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Background/MarginContainer/VBoxContainer/HeaderBar" unique_id=1175906299]
+layout_mode = 2
+text = "BENCHMARK SUITE HUB"
+label_settings = SubResource("LabelSettings_l03eg")
+
+[node name="Spacer" type="Control" parent="Background/MarginContainer/VBoxContainer/HeaderBar" unique_id=371993103]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BtnBack" type="Button" parent="Background/MarginContainer/VBoxContainer/HeaderBar" unique_id=326167237]
+custom_minimum_size = Vector2(180, 36)
+layout_mode = 2
+text = "Back to Menu (ESC)"
+
+[node name="HSeparator" type="HSeparator" parent="Background/MarginContainer/VBoxContainer" unique_id=624014429]
+layout_mode = 2
+
+[node name="StatusInfoBar" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=1838764190]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Background/MarginContainer/VBoxContainer/StatusInfoBar" unique_id=486918074]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="LabelSuiteInfo" type="RichTextLabel" parent="Background/MarginContainer/VBoxContainer/StatusInfoBar/MarginContainer" unique_id=367883586]
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+
+[node name="SuiteGrid" type="GridContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=1049582941]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 16
+columns = 2
+
+[node name="CardSyntheticRender" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid" unique_id=1724010842]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticRender" unique_id=690126527]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticRender/MarginContainer" unique_id=1623239005]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LabelCard1" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticRender/MarginContainer/VBoxContainer" unique_id=862466777]
+layout_mode = 2
+text = "1. Synthetic A/B (Rendered)"
+label_settings = SubResource("LabelSettings_i0sa5")
+
+[node name="DescCard1" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticRender/MarginContainer/VBoxContainer" unique_id=356173246]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "12-step test: DOD vs OOP (1k, 5k, 10k) with full GPU rendering and MultiMesh instances."
+label_settings = SubResource("LabelSettings_i0sa5")
+autowrap_mode = 2
+
+[node name="Spacer1" type="Control" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticRender/MarginContainer/VBoxContainer" unique_id=1599200341]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnRunSyntheticRender" type="Button" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticRender/MarginContainer/VBoxContainer" unique_id=1320811671]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Run Rendered A/B"
+
+[node name="CardSyntheticHeadless" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid" unique_id=389986791]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticHeadless" unique_id=1262512686]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticHeadless/MarginContainer" unique_id=538786228]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LabelCard2" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticHeadless/MarginContainer/VBoxContainer" unique_id=351803911]
+layout_mode = 2
+text = "2. Synthetic A/B (Headless / No-Render)"
+label_settings = SubResource("LabelSettings_i0sa5")
+
+[node name="DescCard2" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticHeadless/MarginContainer/VBoxContainer" unique_id=2067002528]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "12-step test with rendering and GPU synchronization disabled. Measures pure CPU simulation throughput."
+label_settings = SubResource("LabelSettings_i0sa5")
+autowrap_mode = 2
+
+[node name="Spacer2" type="Control" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticHeadless/MarginContainer/VBoxContainer" unique_id=922293300]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnRunSyntheticHeadless" type="Button" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardSyntheticHeadless/MarginContainer/VBoxContainer" unique_id=322263191]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Run Headless A/B"
+
+[node name="CardDynamicRamp" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid" unique_id=1142924244]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardDynamicRamp" unique_id=1547020993]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardDynamicRamp/MarginContainer" unique_id=1460642324]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LabelCard3" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardDynamicRamp/MarginContainer/VBoxContainer" unique_id=723806936]
+layout_mode = 2
+text = "3. Dynamic Emitter Ramp-Up"
+label_settings = SubResource("LabelSettings_i0sa5")
+
+[node name="DescCard3" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardDynamicRamp/MarginContainer/VBoxContainer" unique_id=1703801690]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Continuously spawns entities from 1 to 20 000. Determines exact 60 FPS saturation and breaking points."
+label_settings = SubResource("LabelSettings_i0sa5")
+autowrap_mode = 2
+
+[node name="Spacer3" type="Control" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardDynamicRamp/MarginContainer/VBoxContainer" unique_id=622954451]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnRunDynamicRamp" type="Button" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardDynamicRamp/MarginContainer/VBoxContainer" unique_id=223512396]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "Run Ramp-Up Test"
+
+[node name="CardFullSuite" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid" unique_id=2124007526]
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardFullSuite" unique_id=1311732881]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardFullSuite/MarginContainer" unique_id=216108830]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LabelCard4" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardFullSuite/MarginContainer/VBoxContainer" unique_id=1272796137]
+modulate = Color(0.34509805, 0.6509804, 1, 1)
+layout_mode = 2
+text = "4. Full Automated Benchmark Suite"
+label_settings = SubResource("LabelSettings_i0sa5")
+
+[node name="DescCard4" type="Label" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardFullSuite/MarginContainer/VBoxContainer" unique_id=353572836]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+text = "Executes all tests consecutively (Rendered A/B, Headless A/B, and Ramp-Up). Generates full combined report."
+label_settings = SubResource("LabelSettings_i0sa5")
+autowrap_mode = 2
+
+[node name="Spacer4" type="Control" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardFullSuite/MarginContainer/VBoxContainer" unique_id=1224945080]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnRunFullSuite" type="Button" parent="Background/MarginContainer/VBoxContainer/SuiteGrid/CardFullSuite/MarginContainer/VBoxContainer" unique_id=2086237130]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "RUN FULL SUITE
+"
+
+[node name="HSeparator2" type="HSeparator" parent="Background/MarginContainer/VBoxContainer" unique_id=1516276942]
+layout_mode = 2
+
+[node name="FooterBar" type="HBoxContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=403206920]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="Background/MarginContainer/VBoxContainer/FooterBar" unique_id=473620708]
+modulate = Color(0.54509807, 0.5803922, 0.61960787, 1)
+layout_mode = 2
+text = "All raw frame data is automatically saved to res://user_files/raw_<test>.csv"
+
+[node name="Spacer3" type="Control" parent="Background/MarginContainer/VBoxContainer/FooterBar" unique_id=569774442]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FilePathLabel" type="Button" parent="Background/MarginContainer/VBoxContainer/FooterBar" unique_id=1511135492]
+custom_minimum_size = Vector2(180, 34)
+layout_mode = 2
+text = "View Results & Analytics"

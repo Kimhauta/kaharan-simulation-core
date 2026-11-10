@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://q60jd4q6o1oh"]
+
+[ext_resource type="Script" uid="uid://bynm835hcg6e4" path="res://bench_ramp_up_render.gd" id="1_ddpaw"]
+
+[node name="BenchRampUpRender" type="Node3D" unique_id=1748112301]
+script = ExtResource("1_ddpaw")
+
+[node name="SimulationBridge" type="SimulationBridge" parent="." unique_id=1765549356]
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="." unique_id=162658018]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1979171270]
+transform = Transform3D(1, 0, 0, 0, 0.81915206, 0.57357645, 0, -0.57357645, 0.81915206, 0, 45, 65)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1316632367]
+transform = Transform3D(0.8660254, 0.43301272, -0.24999999, 0, 0.49999997, 0.86602545, 0.5, -0.75, 0.43301266, 0, 50, 0)

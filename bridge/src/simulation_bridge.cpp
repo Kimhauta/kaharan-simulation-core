@@ -15,6 +15,7 @@ namespace kaharan::bridge {
         // Expose control API and telemetry queries to Godot ClassDB and GDScript
         godot::ClassDB::bind_method(godot::D_METHOD("get_bridge_version"), &SimulationBridge::get_bridge_version);
         godot::ClassDB::bind_method(godot::D_METHOD("spawn_agents", "count"), &SimulationBridge::spawn_agents);
+        godot::ClassDB::bind_method(godot::D_METHOD("add_agents", "count"), &SimulationBridge::add_agents);
         godot::ClassDB::bind_method(godot::D_METHOD("get_agent_count"), &SimulationBridge::get_agent_count);
         godot::ClassDB::bind_method(godot::D_METHOD("get_agent_position", "index"), &SimulationBridge::get_agent_position);
         godot::ClassDB::bind_method(godot::D_METHOD("get_last_tick_microseconds"), &SimulationBridge::get_last_tick_microseconds);
@@ -46,6 +47,12 @@ namespace kaharan::bridge {
         if (p_count <= 0) return;
         m_world.spawn_test_agents(static_cast<size_t>(p_count));
         godot::UtilityFunctions::print("[SimulationBridge] Successfully spawned ", p_count, " agents into SoA buffer.");
+    }
+
+    void SimulationBridge::add_agents(int p_count) {
+        if (p_count <= 0) return;
+        m_world.add_test_agents(static_cast<size_t>(p_count));
+        // Huom: Ei print-kutsua konsoliin joka kehyksessä, jottei FPS romahda!
     }
 
     int SimulationBridge::get_agent_count() const {

@@ -29,6 +29,7 @@ namespace kaharan::bridge {
         [[nodiscard]] int get_agent_count() const;
         [[nodiscard]] godot::Vector3 get_agent_position(int p_index) const;
         [[nodiscard]] double get_last_tick_microseconds() const;
+        void add_agents(int p_count);
 
         void sync_to_multimesh(godot::Ref<godot::MultiMesh> p_multimesh);
         void sync_to_multimesh_range(godot::Ref<godot::MultiMesh> p_multimesh, int p_start_index, int p_count);

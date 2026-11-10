@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cpm5ckw353kkn"]
+
+[ext_resource type="Script" uid="uid://8t4uy3hudwrw" path="res://bench_ramp_up_headless.gd" id="1_7c1p7"]
+
+[node name="BenchRampUpHeadless" type="Node3D" unique_id=1113403752]
+script = ExtResource("1_7c1p7")
+
+[node name="SimulationBridge" type="SimulationBridge" parent="." unique_id=1858009585]

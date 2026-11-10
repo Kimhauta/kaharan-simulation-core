@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://0xu4uywxiaqs"]
+
+[ext_resource type="Script" uid="uid://bdfcyfn38c56s" path="res://bench_synthetic_render.gd" id="1_v3hi5"]
+
+[node name="BenchSyntheticRender" type="Node3D" unique_id=1543344716]
+script = ExtResource("1_v3hi5")
+
+[node name="SimulationBridge" type="SimulationBridge" parent="." unique_id=825750769]
+
+[node name="MultiMeshInstance3D" type="MultiMeshInstance3D" parent="." unique_id=1231419110]
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1346210941]
+transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.70710677, 0, -0.70710677, 0.70710677, 0, 45, 65)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1804293791]

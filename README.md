@@ -1,161 +1,75 @@
 ﻿# Kaharan Simulation Core
 
-> High-performance, Data-Oriented C++20 simulation engine extension for Godot 4 via GDExtension.
+**High-Performance C++20 Data-Oriented Simulation Engine & Godot 4 GDExtension Benchmark Suite**
 
-Developed as an engineering thesis project at **Lapin AMK** (Lapland University of Applied Sciences). The project investigates the performance advantages and integration patterns of Data-Oriented Design (DOD) and Structure-of-Arrays (SoA) memory architectures against traditional Object-Oriented SceneTree paradigms in modern game engines.
+Developed as a Bachelor of Engineering Thesis at **Lapland University of Applied Sciences (Lapin AMK)**.  
+Author: **Kimmo Hautalahti** (2026)
 
----
+## Overview
 
-## Architecture Overview
+**Kaharan Simulation Core** is an engine-agnostic C++20 simulation framework designed around **Data-Oriented Design (DOD)** principles and **Structure-of-Arrays (SoA)** memory layouts. It integrates into **Godot Engine 4.6** via **GDExtension** (`SimulationBridge`) and synchronizes tens of thousands of active 3D agents directly to the Vulkan rendering pipeline using a **Zero-Copy `MultiMesh`** buffer architecture.
 
-The system is decoupled into three isolated layers:
+The repository includes an automated 5-stage empirical benchmark suite comparing the C++20 DOD architecture against Godot's native Object-Oriented Programming (OOP) `SceneTree` and `GDScript` workflow.
 
-```mermaid
-flowchart TD
-    subgraph Core["1. Pure C++ Core (Simulation Core)"]
-        direction TB
-        A1["Headless & cache-coherent Structure-of-Arrays (SoA) registry"]
-        A2["Zero engine dependencies, 12-byte aligned math primitives"]
-        A3["Auto-vectorized linear physics compute loops (__restrict)"]
-    end
+## Core Architectural Features
 
-    subgraph Bridge["2. GDExtension Bridge Layer"]
-        direction TB
-        B1["Minimal C-ABI entry point binding to Godot 4 ClassDB"]
-        B2["Direct batch synchronization into Godot MultiMesh buffers"]
-        B3["High-precision telemetry (std::chrono microsecond timing)"]
-    end
+* **Engine-Agnostic C++20 Core:** Pure C++20 simulation library (`kaharan_core`) with zero dependencies on Godot headers, compiling both into a standalone CLI micro-benchmark executable and a Godot GDExtension dynamic library.
+* **Structure-of-Arrays (SoA) Registry:** Contiguous, pre-allocated memory buffers for entity transforms, velocities, and Simulation LOD states maximizing CPU L1/L2 cache line utilization and hardware prefetching.
+* **Zero-Copy MultiMesh Synchronization:** Each entity's spatial state is stored in an aligned 48-byte `Transform3DData` matrix matching Godot 4's row-interleaved $3 \times 4$ `MultiMesh` buffer contract, enabling single-pass `std::memcpy` transfers and memory slicing (`sync_to_multimesh_range`) across multiple visual archetypes.
+* **Spatial Simulation LOD (Level of Detail):** Distance-based 3-tier update frequency scaling (`LOD0_Full` every frame, `LOD1_Amortized` every 4th frame, `LOD2_Dormant` every 16th frame) with staggered index modulo scheduling (`(i + tick) & mask`) to eliminate frame-time spikes.
+* **Constant-Geometry Methodology:** All single-mesh and multi-mesh tests utilize uniform 12-triangle cube primitives across 5 distinct materials, isolating memory layout, draw-call batching, and CPU simulation throughput from polygon count variance.
 
-    subgraph Godot["3. Godot 4 Presentation Layer"]
-        direction TB
-        C1["Hardware-accelerated GPU instancing (MultiMeshInstance3D)"]
-        C2["1 draw call for thousands of entities"]
-        C3["GDScript telemetry monitoring & visual feedback"]
-    end
+## Automated 5-Stage Benchmark Suite
 
-    Core --> Bridge --> Godot
-```
+1. **Synthetic A/B Matrix (Rendered):** Evaluates 1 000, 5 000, and 10 000 entities across 4 variants (DOD 1-Mesh, DOD 5-Mesh, OOP 1-Mesh, OOP 5-Mesh) with full Vulkan rendering.
+2. **Synthetic A/B Matrix (Headless):** Disables rendering and GPU synchronization to isolate pure CPU simulation loop and memory traversal performance.
+3. **Dynamic Emitter Ramp-Up (Rendered):** Continuously spawns heterogeneous agents until frame time exceeds the 60 Hz threshold (17.5 ms) for 5.0 consecutive seconds.
+4. **Dynamic Emitter Ramp-Up (Headless):** Pushes pure CPU simulation until the 60 Hz logic budget saturates.
+5. **3-Room Production Fly-Through & Sandbox:** A $100 \times 100\text{ m}$ architectural greybox level featuring 3 rooms and 2 connecting corridors. Operates both as an interactive free-roam sandbox and a 4-pass automated camera tour comparing OOP Base, OOP + LOD, DOD Base, and DOD + LOD.
 
-### Key Architectural Highlights
-* **Structure-of-Arrays (SoA) Registry:** Entity data (`positions`, `velocities`, `SimulationLOD`) is held in packed contiguous memory vectors. Updating 5,000 entities reads uninterrupted 12-byte blocks, preventing CPU cache misses and pointer dereferencing overhead.
-* **Auto-Vectorization:** SIMD-friendly linear compute loop compiled with MSVC `/O2` and pointer aliasing restrictions (`__restrict`).
-* **Direct MultiMesh Synchronization:** Bypasses individual Godot node overhead by writing raw transform matrices directly to GPU instance buffers in C++.
+## Empirical Benchmark Results (Release Build)
 
----
+Measured on **Intel Core i7-6700K @ 4.00 GHz**, **NVIDIA GeForce GTX 1070 (8 GB)**, **Windows 10 (10.0.19045)**, **Godot 4.6.3-stable Release** (V-Sync OFF).
 
-## Performance & Micro-Benchmarks
+### 1. Synthetic & 3-Room Fly-Through (10 000 Entities)
 
-Micro-benchmark executed on a standalone CLI runner (`simulation_benchmark.exe`) across 1,000 tick iterations with identical deterministic seeds:
+| Test Scenario | Avg FPS | 1% Low FPS | Sim Logic (µs) | Scene Nodes |
+| :--- | :---: | :---: | :---: | :---: |
+| **Synthetic DOD 5-Mesh (Rendered)** | 668.96 | 600.00 | 23.92 | 20 |
+| **Synthetic OOP 5-Mesh (Rendered)** | 54.92 | 43.43 | 8 207.26 | 10 020 |
+| **Synthetic DOD 5-Mesh (Headless)** | 886.58 | 720.00 | 27.14 | 13 |
+| **Synthetic OOP 5-Mesh (Headless)** | 106.67 | 100.00 | 7 119.63 | 10 013 |
+| **3-Room Fly-Through OOP Base** | 40.44 | 36.77 | 14 434.18 | 10 056 |
+| **3-Room Fly-Through OOP + LOD** | 65.68 | 59.21 | 9 515.93 | 10 056 |
+| **3-Room Fly-Through DOD Base** | 396.72 | 369.00 | 212.39 | 56 |
+| **3-Room Fly-Through DOD + LOD** | 394.20 | 369.41 | 153.31 | 56 |
 
-### Standalone C++ Simulation Tick Performance
+At 10 000 rendered entities, the C++20 SoA simulation loop executes **343.1x faster** than GDScript (`23.92 µs` vs. `8 207.26 µs`), delivering a **12.2x higher frame rate** while reducing `SceneTree` node count from 10 020 to 20 and saving over 52 MB of process RAM. In the 3-room Fly-Through with trigonometric steering kinematics, Simulation LOD reduces C++ logic execution time by **27.8%** (`212.39 µs` to `153.31 µs`) and OOP logic time by **34.1%** (`14.43 ms` to `9.52 ms`).
 
-| Entity Count | Debug (`/Od`) Frame Avg | Release (`/O2`) Frame Avg | Compiler Speedup | Release Time / Entity |
-| :--- | :--- | :--- | :--- | :--- |
-| **1,000** | 7.92 µs (0.0079 ms) | **1.56 µs** (0.0016 ms) | **5.06×** | ~1.56 ns |
-| **3,000** | 22.69 µs (0.0227 ms) | **4.64 µs** (0.0046 ms) | **4.89×** | ~1.55 ns |
-| **5,000** | 40.70 µs (0.0407 ms) | **8.32 µs** (0.0083 ms) | **4.89×** | ~1.66 ns |
+### 2. Dynamic Ramp-Up 60 FPS Saturation Breaking Points
 
-### Real-Time In-Engine Performance (Godot 4.6.3 Forward+ Vulkan)
-* **Entities:** 5,000 active bouncing agents
-* **Target FPS:** 60 FPS (16.67 ms frame budget)
-* **C++ Simulation Tick:** ~12–48 µs (0.012–0.048 ms)
-* **Frame Budget Utilization:** < 0.3% of total frame budget consumed by simulation compute
-
----
-
-## Repository Structure
-
-```
-kaharan-simulation-core/
-├── core/                       # Pure C++ Headless Simulation Core
-│   ├── include/core/
-│   │   ├── common.hpp          # EntityID, Vec3 (12B), SimulationLOD
-│   │   ├── registry.hpp        # Structure-of-Arrays (SoA) Registry
-│   │   └── simulation.hpp      # SimulationWorld definition
-│   └── src/
-│       └── simulation.cpp      # Vectorized tick() and boundary logic
-├── bridge/                     # Godot GDExtension Bridge
-│   ├── include/bridge/
-│   │   └── simulation_bridge.hpp # Godot Node wrapping SimulationWorld
-│   └── src/
-│       ├── simulation_bridge.cpp # MultiMesh direct sync & telemetry API
-│       ├── register_types.hpp
-│       └── register_types.cpp    # GDExtension entry point & ClassDB bindings
-├── benchmark/                  # Standalone CLI Benchmarking Suite
-│   └── src/
-│       └── main_bench.cpp      # std::chrono micro-benchmark runner
-├── godot_project/              # Godot 4 Project
-│   ├── bin/                    # Compiled DLL and .gdextension descriptor
-│   ├── test_scene.tscn         # Visualization scene (Camera, MultiMesh)
-│   ├── test_scene.gd           # Telemetry logging script
-│   └── project.godot
-├── extern/
-│   └── godot-cpp/              # Godot C++ GDExtension bindings submodule
-└── CMakeLists.txt              # Unified root build configuration
-```
----
+| Benchmark Mode | DOD Max Entities | OOP Max Entities | Capacity Multiplier | DOD Process RAM |
+| :--- | :---: | :---: | :---: | :---: |
+| **Rendered (5-Mesh)** | 326 667 | 17 391 | **18.8x** | 408.70 MB |
+| **Headless (Pure CPU)** | 968 903 | 30 379 | **31.9x** | 417.12 MB |
 
 ## Build Instructions
 
 ### Prerequisites
-* **Visual Studio 2022** (with *Desktop development with C++* and *C++ CMake tools for Windows*)
-* **CMake 3.22+**
-* **Git**
-* **Godot Engine 4.x** (tested on Godot v4.6.3 Forward+)
+* **Visual Studio 2022** (Desktop development with C++ workload, MSVC v143, CMake tools)
+* **Godot Engine 4.6+** (Standard 64-bit edition)
+* **Git** (with initialized `external/godot-cpp` submodule)
 
-### 1. Clone Repository & Submodules
-```PowerShell
-git clone --recursive [https://github.com/](https://github.com/)<your-username>/kaharan-simulation-core.git
-cd kaharan-simulation-core
-(If cloned non-recursively, initialize submodules via git submodule update --init --recursive).
-```
-
-### 2. Build via Visual Studio 2022
-1. Open the project folder in Visual Studio (File -> Open -> Folder...).
-2. Select build configuration: x64-Release (or x64-Debug).
-3. Build the entire project: Ctrl + Shift + B (or Build -> Build All).
-4. The build pipeline outputs:
-    - CLI Runner: out/build/x64-Release/simulation_benchmark.exe
-    - GDExtension: godot_project/bin/simulation_bridge.dll
-
-### 3. Run Micro-Benchmarks
-Select simulation_benchmark.exe as the startup target in Visual Studio and run (Ctrl + F5), or run directly from terminal:
-
-```PowerShell
-.\out\build\x64-Release\simulation_benchmark.exe
-```
-### 4. Run in Godot Engine
-1. Launch Godot Engine 4.
-2. Import the godot_project/project.godot file.
-3. Open test_scene.tscn and press F6 (Run Current Scene).
-4. 5,000 simulated agents will render via MultiMeshInstance3D with real-time microsecond telemetry printed to the output console.
-
-## Example GDScript Usage
-```GDScript
-extends Node3D
-
-@onready var bridge: SimulationBridge = $SimulationBridge
-@onready var mmi: MultiMeshInstance3D = $MultiMeshInstance3D
-
-func _ready() -> void:
-    # Spawn 5,000 agents into contiguous C++ SoA buffers
-    bridge.spawn_agents(5000)
-
-func _process(_delta: float) -> void:
-    # Blit positions directly from C++ memory to GPU instance transform buffer
-    bridge.sync_to_multimesh(mmi.multimesh)
-    
-    # Query performance telemetry
-    var tick_time_us = bridge.get_last_tick_microseconds()
-    print("C++ simulation tick: %.2f us" % tick_time_us)
-```
-
-## Roadmap & Thesis Milestones
-- [x] Pure C++ Structure-of-Arrays (SoA) entity registry
-- [x] Vectorized contiguous memory simulation loop
-- [x] Standalone CLI micro-benchmarking suite
-- [x] GDExtension bridge binding to Godot 4.6
-- [x] Single-draw-call GPU visualization via MultiMeshInstance3D
-- [ ] Direct A/B baseline comparison against traditional Godot Node3D SceneTree hierarchies
-- [ ] Simulation Level-of-Detail (Simulation LOD) and amortized scheduling
-- [ ] Empirical thesis evaluation chapter and CSV dataset export
+### Compiling the C++20 Core & GDExtension Bridge
+1. Clone the repository with submodules:
+   ```bash
+   git clone --recurse-submodules [https://github.com/Kimhauta/kaharan-simulation-core.git](https://github.com/Kimhauta/kaharan-simulation-core.git)
+2. Open the root folder in Visual Studio 2022 as a CMake project.
+3. Select the x64-Release configuration and build the solution (Ctrl + Shift + B).
+	- Builds kaharan_core.lib (static simulation core)
+	- Builds kaharan_bench.exe (standalone native CLI benchmark)
+	- Builds and copies simulation_bridge.dll directly into godot_project/bin/
+### Running & Exporting the Godot Benchmark Suite
+1. Open godot_project/project.godot in Godot 4.6.
+2. Press F5 to launch the main menu, or export a standalone Windows Desktop (x86_64) executable with Export With Debug disabled.
+3. All benchmark runs automatically generate timestamped session folders under benchmark_runs/ (or res://user_files/runs/ in the editor) containing manifest.json, summary.csv, and per-frame raw telemetry (raw_frames/).

@@ -1,7 +1,11 @@
 extends Control
 
 const MAIN_MENU_PATH: String = "res://main_menu.tscn"
-const RUNS_BASE_DIR: String = "res://user_files/runs"
+
+func _get_runs_base_dir() -> String:
+	if typeof(GameSettings) != TYPE_NIL:
+		return GameSettings.get_runs_base_dir()
+	return "res://user_files/runs"
 
 # Aktiivisen session data
 var current_session_folder: String = ""

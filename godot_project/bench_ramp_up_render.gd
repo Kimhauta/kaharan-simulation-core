@@ -68,27 +68,26 @@ func _init_resources() -> void:
 		Color(0.2, 0.85, 0.4), Color(0.2, 0.6, 1.0), Color(0.95, 0.6, 0.1),
 		Color(0.9, 0.25, 0.3), Color(0.7, 0.3, 0.95)
 	]
-	var m0 = BoxMesh.new(); m0.size = Vector3(0.6, 0.6, 0.6)
-	var m1 = SphereMesh.new(); m1.radius = 0.35; m1.height = 0.7
-	var m2 = CapsuleMesh.new(); m2.radius = 0.25; m2.height = 0.8
-	var m3 = CylinderMesh.new(); m3.top_radius = 0.3; m3.bottom_radius = 0.3; m3.height = 0.7
-	var m4 = PrismMesh.new(); m4.size = Vector3(0.6, 0.6, 0.6)
-	type_meshes = [m0, m1, m2, m3, m4]
-
+	type_meshes.clear()
 	extra_mmis.clear()
+
 	for i in range(NUM_MESH_TYPES):
+		var cube = BoxMesh.new()
+		cube.size = Vector3(0.55, 0.55, 0.55)
 		var mat = StandardMaterial3D.new()
 		mat.albedo_color = colors[i]
-		type_meshes[i].surface_set_material(0, mat)
+		cube.surface_set_material(0, mat)
+		type_meshes.append(cube)
 
 		var mmi = MultiMeshInstance3D.new()
 		var mm = MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = false
 		mm.use_custom_data = false
-		mm.mesh = type_meshes[i]
+		mm.mesh = cube
 		mmi.multimesh = mm
 		mmi.visible = false
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.custom_aabb = AABB(Vector3(-60.0, -10.0, -60.0), Vector3(120.0, 20.0, 120.0))
 		mmi.extra_cull_margin = 50.0
 		add_child(mmi)
@@ -192,7 +191,7 @@ func _process(delta: float) -> void:
 		last_sync_us = 0.0
 
 	# Kehyskohtainen tallennus
-	var ram_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	var ram_mb = bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	var nodes = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var phase_str = "DOD" if current_phase == Phase.DOD_RAMP else "OOP"
 	
@@ -223,6 +222,7 @@ func _spawn_entities(count: int) -> void:
 		for i in range(count):
 			var agent = MeshInstance3D.new()
 			agent.mesh = type_meshes[i % NUM_MESH_TYPES]
+			agent.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			agent.position = Vector3(rng.randf_range(-45.0, 45.0), 0.0, rng.randf_range(-45.0, 45.0))
 			var vel = Vector3(rng.randf_range(-8.0, 8.0), 0.0, rng.randf_range(-8.0, 8.0))
 			oop_container.add_child(agent)
@@ -273,7 +273,7 @@ func _on_phase_saturated() -> void:
 		"avg_sync_us": phase_sync_times / n_frames,
 		"avg_total_us": (phase_logic_times + phase_sync_times) / n_frames,
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
-		"ram_mb": Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+		"ram_mb": bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	})
 
 	if current_phase == Phase.DOD_RAMP:
@@ -340,7 +340,7 @@ func _build_telemetry_hud() -> void:
 
 func _update_hud(frame_ms: float) -> void:
 	var fps = Engine.get_frames_per_second()
-	var ram_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	var ram_mb = bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	var nodes = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var phase_title = "[color=#2ecc71]PHASE 1/2: DOD RAMP-UP (5-Mesh)[/color]" if current_phase == Phase.DOD_RAMP else "[color=#e74c3c]PHASE 2/2: OOP RAMP-UP (5-Mesh)[/color]"
 

@@ -159,7 +159,7 @@ func _record_frame_sample(delta: float) -> void:
 		"logic_us": logic_us,
 		"sync_us": 0.0,
 		"total_us": logic_us,
-		"ram_mb": Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0),
+		"ram_mb": bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)),
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	})
 
@@ -231,7 +231,7 @@ func _finalize_step() -> void:
 		"avg_sync_us": 0.0,
 		"avg_total_us": sum_logic / n,
 		"nodes": current_step_samples[-1]["nodes"],
-		"ram_mb": current_step_samples[-1]["ram_mb"]
+		"ram_mb": current_step_samples[0]["ram_mb"]
 	})
 
 func _finish_suite() -> void:
@@ -249,7 +249,7 @@ func _update_hud() -> void:
 	var frame_ms = 1000.0 / maxf(fps, 1.0)
 	var is_oop = (current_variant == SimVariant.OOP_SINGLE_MESH or current_variant == SimVariant.OOP_MULTI_MESH)
 	var logic_us = last_oop_tick_us if is_oop else bridge.get_last_tick_microseconds()
-	var ram_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	var ram_mb = bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	var nodes = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var vsync_str = "ON" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "OFF"
 	

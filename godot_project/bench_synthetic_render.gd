@@ -70,33 +70,32 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _init_multi_type_resources() -> void:
 	var colors = [
-		Color(0.2, 0.85, 0.4), # Vihreä kuutio
-		Color(0.2, 0.6, 1.0),  # Sininen pallo
-		Color(0.95, 0.6, 0.1), # Oranssi kapseli
-		Color(0.9, 0.25, 0.3), # Punainen lieriö
-		Color(0.7, 0.3, 0.95)  # Violetti prisma
+		Color(0.2, 0.85, 0.4), # Arkkityyppi 0: Vihreä kuutio
+		Color(0.2, 0.6, 1.0),  # Arkkityyppi 1: Sininen kuutio
+		Color(0.95, 0.6, 0.1), # Arkkityyppi 2: Oranssi kuutio
+		Color(0.9, 0.25, 0.3), # Arkkityyppi 3: Punainen kuutio
+		Color(0.7, 0.3, 0.95)  # Arkkityyppi 4: Violetti kuutio
 	]
-	var m0 = BoxMesh.new(); m0.size = Vector3(0.6, 0.6, 0.6)
-	var m1 = SphereMesh.new(); m1.radius = 0.35; m1.height = 0.7
-	var m2 = CapsuleMesh.new(); m2.radius = 0.25; m2.height = 0.8
-	var m3 = CylinderMesh.new(); m3.top_radius = 0.3; m3.bottom_radius = 0.3; m3.height = 0.7
-	var m4 = PrismMesh.new(); m4.size = Vector3(0.6, 0.6, 0.6)
-	type_meshes = [m0, m1, m2, m3, m4]
-	
+	type_meshes.clear()
 	extra_mmis.clear()
+
 	for i in range(NUM_MESH_TYPES):
+		var cube = BoxMesh.new()
+		cube.size = Vector3(0.55, 0.55, 0.55)
 		var mat = StandardMaterial3D.new()
 		mat.albedo_color = colors[i]
-		type_meshes[i].surface_set_material(0, mat)
+		cube.surface_set_material(0, mat)
+		type_meshes.append(cube)
 
 		var mmi = MultiMeshInstance3D.new()
 		var mm = MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = false
 		mm.use_custom_data = false
-		mm.mesh = type_meshes[i]
+		mm.mesh = cube
 		mmi.multimesh = mm
 		mmi.visible = false
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.custom_aabb = AABB(Vector3(-60.0, -10.0, -60.0), Vector3(120.0, 20.0, 120.0))
 		mmi.extra_cull_margin = 50.0
 		add_child(mmi)
@@ -172,6 +171,7 @@ func _setup_simulation(count: int, variant: SimVariant) -> void:
 		rng.seed = 1337
 		for i in range(entity_count):
 			var agent = MeshInstance3D.new()
+			agent.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			agent.mesh = type_meshes[0] if variant == SimVariant.OOP_SINGLE_MESH else type_meshes[i % NUM_MESH_TYPES]
 			agent.position = Vector3(rng.randf_range(-45.0, 45.0), 0.0, rng.randf_range(-45.0, 45.0))
 			var vel = Vector3(rng.randf_range(-8.0, 8.0), 0.0, rng.randf_range(-8.0, 8.0))
@@ -262,7 +262,7 @@ func _record_frame_sample(delta: float) -> void:
 		"logic_us": logic_us,
 		"sync_us": last_sync_us,
 		"total_us": logic_us + last_sync_us,
-		"ram_mb": Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0),
+		"ram_mb": bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)),
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	})
 
@@ -339,7 +339,7 @@ func _finalize_step() -> void:
 		"avg_sync_us": avg_sync,
 		"avg_total_us": avg_logic + avg_sync,
 		"nodes": current_step_samples[-1]["nodes"],
-		"ram_mb": current_step_samples[-1]["ram_mb"]
+		"ram_mb": current_step_samples[0]["ram_mb"]
 	})
 
 func _finish_benchmark_and_return() -> void:
@@ -358,7 +358,7 @@ func _update_hud() -> void:
 	var frame_ms = 1000.0 / maxf(fps, 1.0)
 	var is_oop = (current_variant == SimVariant.OOP_SINGLE_MESH or current_variant == SimVariant.OOP_MULTI_MESH)
 	var logic_us = last_oop_tick_us if is_oop else bridge.get_last_tick_microseconds()
-	var ram_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	var ram_mb = bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	var nodes = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var vsync_str = "ON" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "OFF"
 	

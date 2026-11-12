@@ -1,50 +1,136 @@
 extends Control
 
-const PLAYABLE_SCENE_PATH = "res://greybox_level.tscn"
-const BENCHMARK_HUB_PATH = "res://benchmark_hub.tscn"
-const RESULTS_SCENE_PATH = "res://benchmark_results.tscn"
-const SETTINGS_SCENE_PATH = "res://settings_menu.tscn"
+const PLAYABLE_SCENE_PATH: String = "res://greybox_level.tscn"
+const BENCHMARK_HUB_PATH: String = "res://benchmark_hub.tscn"
+const RESULTS_SCENE_PATH: String = "res://benchmark_results.tscn"
+const SETTINGS_SCENE_PATH: String = "res://settings_menu.tscn"
 
-@onready var btn_play: Button = find_child("BtnPlay", true, false) as Button
-@onready var btn_benchmark: Button = find_child("BtnBenchmark", true, false) as Button
-@onready var btn_results: Button = find_child("BtnResults", true, false) as Button
-@onready var btn_settings: Button = find_child("BtnSettings", true, false) as Button
-@onready var btn_quit: Button = find_child("BtnQuit", true, false) as Button
-@onready var status_label: Label = find_child("StatusLabel", true, false) as Label
+var status_label: Label
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	
-	if btn_play and not btn_play.pressed.is_connected(_on_btn_play_pressed):
-		btn_play.pressed.connect(_on_btn_play_pressed)
-	if btn_benchmark and not btn_benchmark.pressed.is_connected(_on_btn_benchmark_pressed):
-		btn_benchmark.pressed.connect(_on_btn_benchmark_pressed)
-	if btn_results and not btn_results.pressed.is_connected(_on_btn_results_pressed):
-		btn_results.pressed.connect(_on_btn_results_pressed)
-	if btn_settings and not btn_settings.pressed.is_connected(_on_btn_settings_pressed):
-		btn_settings.pressed.connect(_on_btn_settings_pressed)
-	if btn_quit and not btn_quit.pressed.is_connected(_on_btn_quit_pressed):
-		btn_quit.pressed.connect(_on_btn_quit_pressed)
+	for child in get_children():
+		child.queue_free()
+	_build_main_menu_ui()
 
-func _on_btn_play_pressed() -> void:
-	_change_scene_safe(PLAYABLE_SCENE_PATH, "Interactive demo scene (greybox_level.tscn) not created yet.")
+func _build_main_menu_ui() -> void:
+	var bg = ColorRect.new()
+	bg.color = Color(0.05, 0.067, 0.09, 1.0)
+	bg.set_anchors_preset(PRESET_FULL_RECT)
+	add_child(bg)
 
-func _on_btn_benchmark_pressed() -> void:
-	_change_scene_safe(BENCHMARK_HUB_PATH, "Benchmark scene not found.")
+	var center = CenterContainer.new()
+	center.set_anchors_preset(PRESET_FULL_RECT)
+	add_child(center)
 
-func _on_btn_results_pressed() -> void:
-	_change_scene_safe(RESULTS_SCENE_PATH, "Results scene (benchmark_results.tscn) not created yet.")
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(560, 0)
 
-func _on_btn_settings_pressed() -> void:
-	_change_scene_safe(SETTINGS_SCENE_PATH, "Settings scene (settings_menu.tscn) not created yet.")
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.10, 0.14, 0.96)
+	style.border_color = Color(0.25, 0.55, 0.95, 1.0)
+	style.set_border_width_all(1)
+	style.border_width_top = 3
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(28)
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
 
-func _on_btn_quit_pressed() -> void:
-	get_tree().quit()
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	panel.add_child(vbox)
+
+	# Otsikko ja alaotsikko
+	var title = Label.new()
+	title.text = "KAHARAN SIMULATION CORE"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(0.35, 0.65, 1.0))
+	vbox.add_child(title)
+
+	var subtitle = Label.new()
+	subtitle.text = "Data-Oriented C++20 Simulation Engine & Godot 4 Benchmark Suite"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 13)
+	subtitle.add_theme_color_override("font_color", Color(0.68, 0.74, 0.82))
+	vbox.add_child(subtitle)
+
+	# GDExtension- ja ajotilailmaisin
+	var badge_panel = PanelContainer.new()
+	var b_style = StyleBoxFlat.new()
+	b_style.bg_color = Color(0.05, 0.07, 0.10, 0.9)
+	b_style.set_corner_radius_all(4)
+	b_style.set_content_margin_all(8)
+	badge_panel.add_theme_stylebox_override("panel", b_style)
+	vbox.add_child(badge_panel)
+
+	var badge_lbl = RichTextLabel.new()
+	badge_lbl.bbcode_enabled = true
+	badge_lbl.fit_content = true
+	var bridge_ok = ClassDB.class_exists("SimulationBridge")
+	var bridge_str = "[color=#2ecc71]SimulationBridge C++20 Active[/color]" if bridge_ok else "[color=#e74c3c]SimulationBridge DLL Missing![/color]"
+	var mode_str = "[color=#f39c12]Editor Build[/color]" if OS.has_feature("editor") else "[color=#2ecc71]Release Executable[/color]"
+	badge_lbl.text = "[center]%s  |  %s[/center]" % [bridge_str, mode_str]
+	badge_panel.add_child(badge_lbl)
+
+	var sep1 = HSeparator.new()
+	vbox.add_child(sep1)
+
+	# Päävalikon painikkeet
+	_add_menu_button(vbox, "Play Interactive 3-Room Sandbox", Color(0.20, 0.78, 0.52), _on_play_pressed)
+	_add_menu_button(vbox, "Benchmark Suite Hub", Color(0.25, 0.55, 0.95), _on_benchmark_pressed)
+	_add_menu_button(vbox, "View Results & Analytics", Color(0.68, 0.42, 0.96), _on_results_pressed)
+	_add_menu_button(vbox, "Engine & Benchmark Settings", Color(0.95, 0.55, 0.15), _on_settings_pressed)
+
+	var sep2 = HSeparator.new()
+	vbox.add_child(sep2)
+
+	_add_menu_button(vbox, "Quit Application", Color(0.75, 0.28, 0.32), func(): get_tree().quit())
+
+	status_label = Label.new()
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	vbox.add_child(status_label)
+
+func _add_menu_button(parent: Control, label_text: String, accent: Color, callback: Callable) -> void:
+	var btn = Button.new()
+	btn.text = label_text
+	btn.custom_minimum_size = Vector2(0, 42)
+	btn.add_theme_font_size_override("font_size", 15)
+
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color(0.11, 0.14, 0.19, 1.0)
+	normal.border_color = accent.darkened(0.25)
+	normal.set_border_width_all(1)
+	normal.border_width_left = 4
+	normal.set_corner_radius_all(5)
+
+	var hover = normal.duplicate()
+	hover.bg_color = Color(0.16, 0.20, 0.27, 1.0)
+	hover.border_color = accent
+
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.pressed.connect(callback)
+	parent.add_child(btn)
+
+func _on_play_pressed() -> void:
+	if typeof(GameSettings) != TYPE_NIL:
+		GameSettings.is_running_full_suite = false
+		GameSettings.force_greybox_benchmark = false
+	_change_scene_safe(PLAYABLE_SCENE_PATH, "Interactive demo scene (greybox_level.tscn) not found.")
+
+func _on_benchmark_pressed() -> void:
+	_change_scene_safe(BENCHMARK_HUB_PATH, "Benchmark Hub scene not found.")
+
+func _on_results_pressed() -> void:
+	_change_scene_safe(RESULTS_SCENE_PATH, "Results scene not found.")
+
+func _on_settings_pressed() -> void:
+	_change_scene_safe(SETTINGS_SCENE_PATH, "Settings scene not found.")
 
 func _change_scene_safe(target_path: String, fallback_msg: String) -> void:
 	if ResourceLoader.exists(target_path):
 		get_tree().change_scene_to_file(target_path)
-	else:
-		if status_label:
-			status_label.text = fallback_msg
-		print("[MainMenu] Warning: ", fallback_msg)
+	elif status_label:
+		status_label.text = fallback_msg

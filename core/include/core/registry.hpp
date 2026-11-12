@@ -46,7 +46,9 @@ namespace kaharan::core {
 
         [[nodiscard]] Vec3* get_velocities_data() noexcept { return m_velocities.data(); }
         [[nodiscard]] const Vec3* get_velocities_data() const noexcept { return m_velocities.data(); }
+
         [[nodiscard]] SimulationLOD* get_lods_data() noexcept { return m_lods.data(); }
+        [[nodiscard]] const SimulationLOD* get_lods_data() const noexcept { return m_lods.data(); }
 
         [[nodiscard]] Vec3 get_position(EntityID id) const {
             assert(id < m_transforms.size());

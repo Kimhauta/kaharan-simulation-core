@@ -1,8 +1,14 @@
 extends Node
 
 const SETTINGS_PATH: String = "user://settings.cfg"
-const RUNS_BASE_DIR: String = "res://user_files/runs"
-const LEGACY_SUMMARY_PATH: String = "res://user_files/benchmark_summary.dat"
+
+static func get_runs_base_dir() -> String:
+	if OS.has_feature("editor"):
+		return "res://user_files/runs"
+	return OS.get_executable_path().get_base_dir().path_join("benchmark_runs")
+
+static func get_legacy_summary_path() -> String:
+	return get_runs_base_dir().get_base_dir().path_join("benchmark_summary.dat")
 
 # --- 1. Näyttö- ja moottoriasetukset ---
 var vsync_enabled: bool = false
@@ -28,6 +34,7 @@ var current_run_id: String = ""
 var current_manifest: Dictionary = {}
 var benchmark_queue: Array[String] = []
 var is_running_full_suite: bool = false
+var force_greybox_benchmark: bool = false
 
 func _ready() -> void:
 	load_settings()
@@ -93,8 +100,8 @@ func get_synthetic_configs(is_headless: bool = false) -> Array[Dictionary]:
 # ==============================================================================
 
 func _ensure_runs_directory() -> void:
-	if not DirAccess.dir_exists_absolute(RUNS_BASE_DIR):
-		DirAccess.make_dir_recursive_absolute(RUNS_BASE_DIR)
+	if not DirAccess.dir_exists_absolute(get_runs_base_dir()):
+		DirAccess.make_dir_recursive_absolute(get_runs_base_dir())
 
 func create_new_session(custom_label: String = "run") -> String:
 	_ensure_runs_directory()
@@ -107,7 +114,7 @@ func create_new_session(custom_label: String = "run") -> String:
 	# Muodostetaan selkeä tunniste (esim. run_2026-11-10_18-20-15_full_suite)
 	var safe_label = custom_label.validate_filename()
 	current_run_id = "run_%s_%s" % [timestamp_str, safe_label]
-	current_session_folder = RUNS_BASE_DIR.path_join(current_run_id)
+	current_session_folder = get_runs_base_dir().path_join(current_run_id)
 	
 	DirAccess.make_dir_recursive_absolute(current_session_folder)
 	DirAccess.make_dir_recursive_absolute(current_session_folder.path_join("raw_frames"))
@@ -140,7 +147,7 @@ func get_current_raw_frames_folder() -> String:
 		DirAccess.make_dir_recursive_absolute(raw_dir)
 	return raw_dir
 
-func _init_session_manifest(timestamp_str: String, label: String) -> void:
+func _init_session_manifest(_timestamp_str: String, label: String) -> void:
 	var workload_names = ["Standard (1k, 5k, 10k)", "Lightweight (500, 1k, 2.5k)", "Extreme (5k, 10k, 25k)"]
 	var mesh_mode_names = ["Full Matrix (1 & 5 Meshes)", "Single-Mesh Only (1 Draw Call)", "Multi-Mesh Only (5 Draw Calls)"]
 	var growth_names = ["Progressive Acceleration", "Constant Linear"]
@@ -212,8 +219,8 @@ func append_summary_results(results: Array[Dictionary]) -> void:
 	_mirror_to_legacy_summary(results)
 
 func _mirror_to_legacy_summary(results: Array[Dictionary]) -> void:
-	var file_exists = FileAccess.file_exists(LEGACY_SUMMARY_PATH)
-	var f = FileAccess.open(LEGACY_SUMMARY_PATH, FileAccess.READ_WRITE if file_exists else FileAccess.WRITE)
+	var file_exists = FileAccess.file_exists(get_legacy_summary_path())
+	var f = FileAccess.open(get_legacy_summary_path(), FileAccess.READ_WRITE if file_exists else FileAccess.WRITE)
 	if f:
 		if file_exists: f.seek_end()
 		else: f.store_line("Config,Entities,FramesSampled,AvgFPS,StdDev_ms,FPS_1pct_Low,FPS_01pct_Low,AvgFrameTime_ms,AvgLogic_us,MinLogic_us,MaxLogic_us,AvgSync_us,AvgTotalSim_us,SceneNodes,StaticRAM_MB")
@@ -268,16 +275,16 @@ func finalize_session() -> void:
 
 func get_all_run_sessions() -> Array[Dictionary]:
 	var runs: Array[Dictionary] = []
-	if not DirAccess.dir_exists_absolute(RUNS_BASE_DIR):
+	if not DirAccess.dir_exists_absolute(get_runs_base_dir()):
 		return runs
 		
-	var dir = DirAccess.open(RUNS_BASE_DIR)
+	var dir = DirAccess.open(get_runs_base_dir())
 	if dir:
 		dir.list_dir_begin()
 		var entry = dir.get_next()
 		while entry != "":
 			if dir.current_is_dir() and entry != "." and entry != "..":
-				var folder_path = RUNS_BASE_DIR.path_join(entry)
+				var folder_path = get_runs_base_dir().path_join(entry)
 				var manifest_file = folder_path.path_join("manifest.json")
 				if FileAccess.file_exists(manifest_file):
 					var f = FileAccess.open(manifest_file, FileAccess.READ)
@@ -297,7 +304,7 @@ func get_all_run_sessions() -> Array[Dictionary]:
 func open_session_folder_in_os(folder_path: String = "") -> void:
 	var target = folder_path if not folder_path.is_empty() else current_session_folder
 	if target.is_empty():
-		target = RUNS_BASE_DIR
+		target = get_runs_base_dir()
 	var global_path = ProjectSettings.globalize_path(target)
 	OS.shell_open(global_path)
 

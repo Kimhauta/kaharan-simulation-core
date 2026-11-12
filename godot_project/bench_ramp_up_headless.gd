@@ -137,7 +137,7 @@ func _process(delta: float) -> void:
 		last_logic_us = float(Time.get_ticks_usec() - t0)
 
 	# Kehyskohtainen tallennus
-	var ram_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	var ram_mb = bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	var nodes = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var phase_str = "Headless_DOD" if current_phase == Phase.DOD_RAMP else "Headless_OOP"
 	
@@ -213,7 +213,7 @@ func _on_phase_saturated() -> void:
 		"avg_sync_us": 0.0,
 		"avg_total_us": phase_logic_times / n_frames,
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)),
-		"ram_mb": Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+		"ram_mb": bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	})
 
 	if current_phase == Phase.DOD_RAMP:
@@ -280,7 +280,7 @@ func _build_telemetry_hud() -> void:
 
 func _update_hud(frame_ms: float) -> void:
 	var fps = Engine.get_frames_per_second()
-	var ram_mb = Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0)
+	var ram_mb = bridge.get_process_memory_mb() if bridge.has_method("get_process_memory_mb") else (Performance.get_monitor(Performance.MEMORY_STATIC) / (1024.0 * 1024.0))
 	var nodes = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	var phase_title = "[color=#2ecc71]PHASE 1/2: DOD RAMP-UP (5-Mesh)[/color]" if current_phase == Phase.DOD_RAMP else "[color=#e74c3c]PHASE 2/2: OOP RAMP-UP (5-Mesh)[/color]"
 

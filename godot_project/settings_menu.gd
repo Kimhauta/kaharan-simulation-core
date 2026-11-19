@@ -1,21 +1,31 @@
+## Configuration screen for display, synthetic A/B, and dynamic Ramp-Up parameters[cite: 23].
+##
+## Programmatically builds a three-column settings interface bound to the global
+## [GameSettings] singleton and persists user choices to [code]user://settings.cfg[/code][cite: 23].
 extends Control
 
 const MAIN_MENU_PATH: String = "res://main_menu.tscn"
 
+# Display and execution controls
 var chk_vsync: CheckButton
 var opt_window_mode: OptionButton
 var opt_max_fps: OptionButton
 var opt_profile: OptionButton
 
+# Synthetic A/B parameter controls
 var opt_mesh_mode: OptionButton
 var opt_workload: OptionButton
 
+# Dynamic Ramp-Up emitter controls
 var opt_ramp_mode: OptionButton
 var spin_base_rate: SpinBox
 var spin_accel_factor: SpinBox
 
+## Footer feedback label confirming save/reset operations[cite: 23].
 var status_label: Label
 
+
+## Constructs the settings UI and populates controls from [GameSettings][cite: 23].
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	for child in get_children():
@@ -23,11 +33,15 @@ func _ready() -> void:
 	_build_settings_ui()
 	_load_from_game_settings()
 
+
+## Returns to the main menu when Escape is pressed[cite: 23].
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			get_tree().change_scene_to_file(MAIN_MENU_PATH)
 
+
+## Builds the header, three parameter columns, and action footer[cite: 23].
 func _build_settings_ui() -> void:
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.067, 0.09, 1.0)
@@ -46,7 +60,7 @@ func _build_settings_ui() -> void:
 	root_vbox.add_theme_constant_override("separation", 14)
 	margin.add_child(root_vbox)
 
-	# Yläpalkki
+	# Top header bar
 	var header = HBoxContainer.new()
 	root_vbox.add_child(header)
 
@@ -66,13 +80,13 @@ func _build_settings_ui() -> void:
 	btn_back.pressed.connect(func(): get_tree().change_scene_to_file(MAIN_MENU_PATH))
 	header.add_child(btn_back)
 
-	# Keskialue (3 asetuslohkoa)
+	# Main configuration area (3 parameter columns)
 	var columns = HBoxContainer.new()
 	columns.size_flags_vertical = SIZE_EXPAND_FILL
 	columns.add_theme_constant_override("separation", 16)
 	root_vbox.add_child(columns)
 
-	# --- LOHKO 1: Display & Engine ---
+	# --- COLUMN 1: Display & Engine ---
 	var sec1 = _create_section_panel(columns, "1. Display & Execution Profile", Color(0.25, 0.55, 0.95))
 
 	chk_vsync = CheckButton.new()
@@ -99,7 +113,7 @@ func _build_settings_ui() -> void:
 	opt_profile.add_item("Soak / Endurance (300s step / 75s tour)", 2)
 	_add_labeled_row(sec1, "Benchmark Profile:", opt_profile)
 
-	# --- LOHKO 2: Synthetic A/B Matrix ---
+	# --- COLUMN 2: Synthetic A/B Matrix ---
 	var sec2 = _create_section_panel(columns, "2. Synthetic A/B Parameters", Color(0.20, 0.78, 0.52))
 
 	opt_workload = OptionButton.new()
@@ -120,7 +134,7 @@ func _build_settings_ui() -> void:
 	note2.add_theme_color_override("font_color", Color(0.62, 0.68, 0.76))
 	sec2.add_child(note2)
 
-	# --- LOHKO 3: Dynamic Ramp-Up Emitter ---
+	# --- COLUMN 3: Dynamic Ramp-Up Emitter ---
 	var sec3 = _create_section_panel(columns, "3. Dynamic Ramp-Up Emitter", Color(0.68, 0.42, 0.96))
 
 	opt_ramp_mode = OptionButton.new()
@@ -142,7 +156,7 @@ func _build_settings_ui() -> void:
 	spin_accel_factor.suffix = " / s²"
 	_add_labeled_row(sec3, "Acceleration Factor:", spin_accel_factor)
 
-	# Alapalkki (Toiminnot)
+	# Bottom action footer bar
 	var footer = HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 12)
 	root_vbox.add_child(footer)
@@ -168,6 +182,8 @@ func _build_settings_ui() -> void:
 	btn_save.pressed.connect(_on_apply_and_save)
 	footer.add_child(btn_save)
 
+
+## Creates a bordered section card with a colored top accent bar[cite: 23].
 func _create_section_panel(parent: Control, sec_title: String, accent: Color) -> VBoxContainer:
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -197,6 +213,8 @@ func _create_section_panel(parent: Control, sec_title: String, accent: Color) ->
 	vbox.add_child(sep)
 	return vbox
 
+
+## Wraps a form input control with a descriptive label above it[cite: 23].
 func _add_labeled_row(parent: Control, label_text: String, ctrl: Control) -> void:
 	var box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
@@ -208,6 +226,8 @@ func _add_labeled_row(parent: Control, label_text: String, ctrl: Control) -> voi
 	box.add_child(ctrl)
 	parent.add_child(box)
 
+
+## Selects the item in [param opt] matching [param target_id][cite: 23].
 func _select_option_by_id(opt: OptionButton, target_id: int) -> void:
 	for i in range(opt.item_count):
 		if opt.get_item_id(i) == target_id:
@@ -215,6 +235,8 @@ func _select_option_by_id(opt: OptionButton, target_id: int) -> void:
 			return
 	opt.select(0)
 
+
+## Synchronizes UI widgets with current [GameSettings] values[cite: 23].
 func _load_from_game_settings() -> void:
 	if typeof(GameSettings) == TYPE_NIL:
 		return
@@ -228,6 +250,8 @@ func _load_from_game_settings() -> void:
 	spin_base_rate.value = GameSettings.ramp_base_spawn_rate
 	spin_accel_factor.value = GameSettings.ramp_acceleration_factor
 
+
+## Writes UI widget selections back to [GameSettings], saves to disk, and applies display rules[cite: 23].
 func _on_apply_and_save() -> void:
 	if typeof(GameSettings) == TYPE_NIL:
 		return
@@ -246,6 +270,8 @@ func _on_apply_and_save() -> void:
 	status_label.text = "Settings applied and saved successfully!"
 	status_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.45))
 
+
+## Restores default benchmark parameters and persists them immediately[cite: 23].
 func _on_reset_defaults() -> void:
 	if typeof(GameSettings) == TYPE_NIL:
 		return

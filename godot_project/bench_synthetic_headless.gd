@@ -1,8 +1,13 @@
+## Headless Synthetic A/B Benchmark Suite isolating pure CPU simulation throughput.
+##
+## Disables all 3D mesh visibility and MultiMesh GPU synchronization to measure raw
+## CPU simulation loop performance and memory footprint between C++20 SoA and GDScript SceneTree.
 extends Node3D
 
 @onready var bridge: SimulationBridge = $SimulationBridge
 @onready var mmi_primary: MultiMeshInstance3D = find_child("MultiMeshInstance3D", true, false) as MultiMeshInstance3D
 
+## Tested architecture variants.
 enum SimVariant { DOD_SINGLE_MESH, DOD_MULTI_MESH, OOP_SINGLE_MESH, OOP_MULTI_MESH }
 
 const START_DELAY: float = 1.0
@@ -18,12 +23,12 @@ var oop_velocities: Array[Vector3] = []
 
 var last_oop_tick_us: float = 0.0
 
+## Automated benchmark execution states.
 enum BenchState { COUNTDOWN, WARMING_UP, SAMPLING, FINISHED }
 var state: BenchState = BenchState.COUNTDOWN
 var timer: float = 0.0
 var step_index: int = 0
 
-# Haetaan dynaamisesti GameSettingsiltä
 var bench_configs: Array[Dictionary] = []
 var current_step_samples: Array[Dictionary] = []
 var summary_results: Array[Dictionary] = []
@@ -31,14 +36,16 @@ var summary_results: Array[Dictionary] = []
 var hud_label: RichTextLabel
 var progress_bar: ProgressBar
 
+
+## Initializes execution priority, hides 3D visuals, and builds the telemetry HUD.
 func _ready() -> void:
+	process_priority = -10
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.apply_settings()
 		sample_duration = GameSettings.get_sample_duration()
-		# Dynaamiset asetukset (is_headless = true)
 		bench_configs = GameSettings.get_synthetic_configs(true)
 
-	if mmi_primary: 
+	if mmi_primary:
 		mmi_primary.visible = false
 	
 	oop_container = Node3D.new()
@@ -50,6 +57,8 @@ func _ready() -> void:
 	state = BenchState.COUNTDOWN
 	timer = 0.0
 
+
+## Aborts the headless benchmark run and returns to the Benchmark Hub when Escape is pressed.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
@@ -57,6 +66,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				GameSettings.is_running_full_suite = false
 			get_tree().change_scene_to_file("res://benchmark_hub.tscn")
 
+
+## Constructs the telemetry HUD overlay panel.
 func _build_telemetry_hud() -> void:
 	var canvas = CanvasLayer.new()
 	add_child(canvas)
@@ -78,6 +89,8 @@ func _build_telemetry_hud() -> void:
 	progress_bar.custom_minimum_size = Vector2(440, 20)
 	vbox.add_child(progress_bar)
 
+
+## Clears previous entities and spawns [param count] deterministic headless agents for [param variant].
 func _setup_simulation(count: int, variant: SimVariant) -> void:
 	entity_count = count
 	current_variant = variant
@@ -102,8 +115,9 @@ func _setup_simulation(count: int, variant: SimVariant) -> void:
 			oop_nodes.append(agent)
 			oop_velocities.append(vel)
 
+
+## Advances OOP SceneTree nodes (DOD ticks automatically via SimulationBridge) and updates state.
 func _process(delta: float) -> void:
-	# Headless: vain OOP liikuttaa solmuja skriptistä, C++ bridge hoitaa DOD:n
 	if current_variant == SimVariant.OOP_SINGLE_MESH or current_variant == SimVariant.OOP_MULTI_MESH:
 		var t0 = Time.get_ticks_usec()
 		_tick_oop(delta)
@@ -112,6 +126,8 @@ func _process(delta: float) -> void:
 	_update_state_machine(delta)
 	_update_hud()
 
+
+## Advances the countdown, warm-up, and sampling state machine across all headless steps.
 func _update_state_machine(delta: float) -> void:
 	timer += delta
 	match state:
@@ -142,6 +158,8 @@ func _update_state_machine(delta: float) -> void:
 				else:
 					_finish_suite()
 
+
+## Configures the headless simulation for step [param idx] and enters warm-up.
 func _start_step(idx: int) -> void:
 	var cfg = bench_configs[idx]
 	current_step_samples.clear()
@@ -149,6 +167,8 @@ func _start_step(idx: int) -> void:
 	state = BenchState.WARMING_UP
 	_setup_simulation(cfg["count"], cfg["variant"])
 
+
+## Records per-frame timing and memory telemetry with GPU sync set to zero.
 func _record_frame_sample(delta: float) -> void:
 	var is_oop = (current_variant == SimVariant.OOP_SINGLE_MESH or current_variant == SimVariant.OOP_MULTI_MESH)
 	var logic_us = last_oop_tick_us if is_oop else bridge.get_last_tick_microseconds()
@@ -163,6 +183,8 @@ func _record_frame_sample(delta: float) -> void:
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	})
 
+
+## Exports raw per-frame CSV data and computes statistical summary metrics for the completed step.
 func _finalize_step() -> void:
 	var cfg = bench_configs[step_index]
 	var n = current_step_samples.size()
@@ -234,6 +256,8 @@ func _finalize_step() -> void:
 		"ram_mb": current_step_samples[0]["ram_mb"]
 	})
 
+
+## Appends headless summary records to [GameSettings] and advances the benchmark suite.
 func _finish_suite() -> void:
 	state = BenchState.FINISHED
 	set_process(false)
@@ -241,6 +265,8 @@ func _finish_suite() -> void:
 		GameSettings.append_summary_results(summary_results)
 		GameSettings.finish_current_benchmark()
 
+
+## Updates the HUD with live headless performance metrics.
 func _update_hud() -> void:
 	if state == BenchState.FINISHED:
 		return
@@ -264,7 +290,6 @@ func _update_hud() -> void:
 	var safe_idx = clampi(step_index, 0, maxi(0, bench_configs.size() - 1))
 	var cfg_name = bench_configs[safe_idx]["name"] if bench_configs.size() > 0 else "None"
 	
-	# Muotoillaan aktiiviset esiasetukset
 	var workload_str = "Standard (1k-10k)"
 	if typeof(GameSettings) != TYPE_NIL:
 		match GameSettings.synthetic_workload:
@@ -278,13 +303,15 @@ func _update_hud() -> void:
 	txt += "Active Entities : %d\n" % entity_count
 	txt += "FPS / FrameTime : %d FPS (%.2f ms)\n" % [fps, frame_ms]
 	txt += "Sim Logic Tick  : %.2f us (%.4f ms)\n" % [logic_us, logic_us / 1000.0]
-	txt += "MultiMesh Sync    : 0.00 us (Disabled)\n"
+	txt += "MultiMesh Sync  : 0.00 us (Disabled)\n"
 	txt += "SceneTree Nodes : %d\n" % nodes
 	txt += "Static RAM      : %.1f MB\n" % ram_mb
 	txt += "[/code]\n"
 	txt += "[color=gray][i]Press [ESC] at any time to abort.[/i][/color]"
 	hud_label.text = txt
 
+
+## Advances all headless OOP nodes linearly and reflects off [-50, 50] arena bounds.
 func _tick_oop(delta: float) -> void:
 	for i in range(oop_nodes.size()):
 		var node = oop_nodes[i]

@@ -1,3 +1,8 @@
+/**
+ * @file simulation_bridge.cpp
+ * @brief Implementation of SimulationBridge GDExtension bindings, MultiMesh transfers, and OS telemetry.
+ */
+
 #include "bridge/simulation_bridge.hpp"
 
 #include <godot_cpp/core/class_db.hpp>
@@ -19,6 +24,10 @@
 
 namespace kaharan::bridge {
 
+    // =========================================================================
+    // GDExtension Method Bindings
+    // =========================================================================
+
     void SimulationBridge::_bind_methods() {
         godot::ClassDB::bind_method(godot::D_METHOD("get_bridge_version"), &SimulationBridge::get_bridge_version);
         godot::ClassDB::bind_method(godot::D_METHOD("spawn_agents", "count"), &SimulationBridge::spawn_agents);
@@ -26,20 +35,22 @@ namespace kaharan::bridge {
         godot::ClassDB::bind_method(godot::D_METHOD("get_agent_count"), &SimulationBridge::get_agent_count);
         godot::ClassDB::bind_method(godot::D_METHOD("get_agent_position", "index"), &SimulationBridge::get_agent_position);
         godot::ClassDB::bind_method(godot::D_METHOD("get_last_tick_microseconds"), &SimulationBridge::get_last_tick_microseconds);
+        godot::ClassDB::bind_method(godot::D_METHOD("get_process_memory_mb"), &SimulationBridge::get_process_memory_mb);
 
         godot::ClassDB::bind_method(godot::D_METHOD("set_lod_enabled", "enabled"), &SimulationBridge::set_lod_enabled);
         godot::ClassDB::bind_method(godot::D_METHOD("is_lod_enabled"), &SimulationBridge::is_lod_enabled);
         godot::ClassDB::bind_method(godot::D_METHOD("set_observer_position", "position"), &SimulationBridge::set_observer_position);
         godot::ClassDB::bind_method(godot::D_METHOD("set_lod_thresholds", "lod1_dist", "lod2_dist"), &SimulationBridge::set_lod_thresholds);
         godot::ClassDB::bind_method(godot::D_METHOD("get_lod_counts"), &SimulationBridge::get_lod_counts);
+        godot::ClassDB::bind_method(godot::D_METHOD("set_steering_enabled", "enabled"), &SimulationBridge::set_steering_enabled);
 
         godot::ClassDB::bind_method(godot::D_METHOD("sync_to_multimesh", "multimesh"), &SimulationBridge::sync_to_multimesh);
         godot::ClassDB::bind_method(godot::D_METHOD("sync_to_multimesh_range", "multimesh", "start_index", "count"), &SimulationBridge::sync_to_multimesh_range);
-
-        godot::ClassDB::bind_method(godot::D_METHOD("set_steering_enabled", "enabled"), &SimulationBridge::set_steering_enabled);
-
-        godot::ClassDB::bind_method(godot::D_METHOD("get_process_memory_mb"), &SimulationBridge::get_process_memory_mb);
     }
+
+    // =========================================================================
+    // Lifecycle Methods
+    // =========================================================================
 
     SimulationBridge::SimulationBridge() = default;
     SimulationBridge::~SimulationBridge() = default;
@@ -53,12 +64,16 @@ namespace kaharan::bridge {
             return;
         }
 
-        auto start_time = std::chrono::high_resolution_clock::now();
+        const auto start_time = std::chrono::high_resolution_clock::now();
         m_world.tick(static_cast<float>(delta));
-        auto end_time = std::chrono::high_resolution_clock::now();
+        const auto end_time = std::chrono::high_resolution_clock::now();
 
         m_last_tick_us = std::chrono::duration<double, std::micro>(end_time - start_time).count();
     }
+
+    // =========================================================================
+    // Entity Management & Telemetry
+    // =========================================================================
 
     void SimulationBridge::spawn_agents(int p_count) {
         if (p_count <= 0) return;
@@ -98,6 +113,14 @@ namespace kaharan::bridge {
         return 0.0;
     }
 
+    godot::String SimulationBridge::get_bridge_version() const {
+        return "Kaharan Simulation Core v0.2.0 (C++20 SoA + Simulation LOD)";
+    }
+
+    // =========================================================================
+    // Simulation LOD & Kinematics Configuration
+    // =========================================================================
+
     void SimulationBridge::set_lod_enabled(bool p_enabled) {
         m_world.set_lod_enabled(p_enabled);
     }
@@ -123,9 +146,13 @@ namespace kaharan::bridge {
         return counts;
     }
 
-    godot::String SimulationBridge::get_bridge_version() const {
-        return "Kaharan Simulation Core v0.2.0 (C++20 SoA + Simulation LOD)";
+    void SimulationBridge::set_steering_enabled(bool p_enabled) {
+        m_world.set_steering_enabled(p_enabled);
     }
+
+    // =========================================================================
+    // Zero-Copy MultiMesh Synchronization
+    // =========================================================================
 
     void SimulationBridge::sync_to_multimesh(godot::Ref<godot::MultiMesh> p_multimesh) {
         if (p_multimesh.is_null()) return;
@@ -134,6 +161,7 @@ namespace kaharan::bridge {
         const size_t total = reg.size();
         if (total == 0) return;
 
+        // Configure format flags only when needed to avoid GPU buffer reallocations
         if (p_multimesh->get_transform_format() != godot::MultiMesh::TRANSFORM_3D) {
             p_multimesh->set_transform_format(godot::MultiMesh::TRANSFORM_3D);
         }
@@ -144,6 +172,7 @@ namespace kaharan::bridge {
             p_multimesh->set_instance_count(static_cast<int64_t>(total));
         }
 
+        // Direct bulk copy: 12 floats (48 bytes) per 3x4 row-interleaved transform matrix
         const float* raw_transforms = reg.get_raw_float_data();
         const size_t total_floats = total * 12;
 
@@ -173,6 +202,7 @@ namespace kaharan::bridge {
             p_multimesh->set_instance_count(actual_count);
         }
 
+        // Offset pointer by p_start_index * 12 floats to slice the contiguous SoA transform buffer
         const float* raw_transforms_slice = registry.get_raw_float_data() + (static_cast<size_t>(p_start_index) * 12);
         const size_t total_floats = static_cast<size_t>(actual_count) * 12;
 
@@ -181,10 +211,6 @@ namespace kaharan::bridge {
         std::memcpy(buffer.ptrw(), raw_transforms_slice, total_floats * sizeof(float));
 
         p_multimesh->set_buffer(buffer);
-    }
-
-    void SimulationBridge::set_steering_enabled(bool p_enabled) {
-        m_world.set_steering_enabled(p_enabled);
     }
 
 } // namespace kaharan::bridge

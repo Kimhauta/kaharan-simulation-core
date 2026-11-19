@@ -1,3 +1,8 @@
+## Primary entry menu for Kaharan Simulation Core[cite: 22].
+##
+## Builds the programmatic dark-themed UI, verifies that the C++20 GDExtension
+## SimulationBridge class is registered in ClassDB, and provides navigation to
+## the interactive sandbox, benchmark hub, analytics view, and settings menu[cite: 22].
 extends Control
 
 const PLAYABLE_SCENE_PATH: String = "res://greybox_level.tscn"
@@ -5,14 +10,19 @@ const BENCHMARK_HUB_PATH: String = "res://benchmark_hub.tscn"
 const RESULTS_SCENE_PATH: String = "res://benchmark_results.tscn"
 const SETTINGS_SCENE_PATH: String = "res://settings_menu.tscn"
 
+## Displays scene transition errors if a target scene cannot be found[cite: 22].
 var status_label: Label
 
+
+## Initializes the menu by resetting mouse capture and constructing the UI[cite: 22].
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	for child in get_children():
 		child.queue_free()
 	_build_main_menu_ui()
 
+
+## Constructs the centered menu card, status indicators, and navigation buttons[cite: 22].
 func _build_main_menu_ui() -> void:
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.067, 0.09, 1.0)
@@ -40,7 +50,7 @@ func _build_main_menu_ui() -> void:
 	vbox.add_theme_constant_override("separation", 12)
 	panel.add_child(vbox)
 
-	# Otsikko ja alaotsikko
+	# Application title and subtitle
 	var title = Label.new()
 	title.text = "KAHARAN SIMULATION CORE"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -55,7 +65,7 @@ func _build_main_menu_ui() -> void:
 	subtitle.add_theme_color_override("font_color", Color(0.68, 0.74, 0.82))
 	vbox.add_child(subtitle)
 
-	# GDExtension- ja ajotilailmaisin
+	# GDExtension and runtime build status badge
 	var badge_panel = PanelContainer.new()
 	var b_style = StyleBoxFlat.new()
 	b_style.bg_color = Color(0.05, 0.07, 0.10, 0.9)
@@ -76,7 +86,7 @@ func _build_main_menu_ui() -> void:
 	var sep1 = HSeparator.new()
 	vbox.add_child(sep1)
 
-	# Päävalikon painikkeet
+	# Primary navigation buttons
 	_add_menu_button(vbox, "Play Interactive 3-Room Sandbox", Color(0.20, 0.78, 0.52), _on_play_pressed)
 	_add_menu_button(vbox, "Benchmark Suite Hub", Color(0.25, 0.55, 0.95), _on_benchmark_pressed)
 	_add_menu_button(vbox, "View Results & Analytics", Color(0.68, 0.42, 0.96), _on_results_pressed)
@@ -92,6 +102,8 @@ func _build_main_menu_ui() -> void:
 	status_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
 	vbox.add_child(status_label)
 
+
+## Creates a styled menu button with a colored left accent border and connects its signal[cite: 22].
 func _add_menu_button(parent: Control, label_text: String, accent: Color, callback: Callable) -> void:
 	var btn = Button.new()
 	btn.text = label_text
@@ -114,21 +126,31 @@ func _add_menu_button(parent: Control, label_text: String, accent: Color, callba
 	btn.pressed.connect(callback)
 	parent.add_child(btn)
 
+
+## Launches the 3-room level in interactive free-roam sandbox mode[cite: 22].
 func _on_play_pressed() -> void:
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.is_running_full_suite = false
 		GameSettings.force_greybox_benchmark = false
 	_change_scene_safe(PLAYABLE_SCENE_PATH, "Interactive demo scene (greybox_level.tscn) not found.")
 
+
+## Navigates to the Benchmark Suite Hub[cite: 22].
 func _on_benchmark_pressed() -> void:
 	_change_scene_safe(BENCHMARK_HUB_PATH, "Benchmark Hub scene not found.")
 
+
+## Navigates to the Benchmark Results and Analytics dashboard[cite: 22].
 func _on_results_pressed() -> void:
 	_change_scene_safe(RESULTS_SCENE_PATH, "Results scene not found.")
 
+
+## Navigates to the Engine & Benchmark Settings screen[cite: 22].
 func _on_settings_pressed() -> void:
 	_change_scene_safe(SETTINGS_SCENE_PATH, "Settings scene not found.")
 
+
+## Safely transitions to [param target_path] if the scene resource exists[cite: 22].
 func _change_scene_safe(target_path: String, fallback_msg: String) -> void:
 	if ResourceLoader.exists(target_path):
 		get_tree().change_scene_to_file(target_path)

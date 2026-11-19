@@ -1,34 +1,44 @@
+## Global Autoload singleton managing benchmark configuration, session storage, and suite orchestration[cite: 21].
+##
+## Persists display and workload settings to [code]user://settings.cfg[/code], generates timestamped
+## session directories with [code]manifest.json[/code] and [code]summary.csv[/code] telemetry, and
+## drives multi-stage sequential benchmark runs[cite: 21].
 extends Node
 
 const SETTINGS_PATH: String = "user://settings.cfg"
 
-static func get_runs_base_dir() -> String:
+
+## Resolves the root output directory for benchmark sessions (editor vs. standalone Release build).
+func get_runs_base_dir() -> String:
 	if OS.has_feature("editor"):
 		return "res://user_files/runs"
 	return OS.get_executable_path().get_base_dir().path_join("benchmark_runs")
 
-static func get_legacy_summary_path() -> String:
+
+## Resolves the path to the backward-compatible cumulative summary file.
+func get_legacy_summary_path() -> String:
 	return get_runs_base_dir().get_base_dir().path_join("benchmark_summary.dat")
 
-# --- 1. Näyttö- ja moottoriasetukset ---
+
+# --- 1. Display & Engine Settings ---
 var vsync_enabled: bool = false
 var window_mode: int = DisplayServer.WINDOW_MODE_WINDOWED
 var max_fps_limit: int = 0
 var benchmark_profile: int = 0 # 0 = Quick (4 s), 1 = Standard (10 s), 2 = Soak (300 s)
 
-# --- 2. Synthetic Benchmark -asetukset ---
-# Mesh-tila: 0 = Full Matrix (1 & 5 Meshes), 1 = Single-Mesh Only, 2 = Multi-Mesh Only
-var synthetic_mesh_mode: int = 0 
-# Työkuorma: 0 = Standard (1k, 5k, 10k), 1 = Lightweight (500, 1k, 2.5k), 2 = Extreme (5k, 10k, 25k)
-var synthetic_workload: int = 0 
+# --- 2. Synthetic Benchmark Settings ---
+# Batching mode: 0 = Full Matrix (1 & 5 Meshes), 1 = Single-Mesh Only, 2 = Multi-Mesh Only
+var synthetic_mesh_mode: int = 0
+# Entity workload tier: 0 = Standard (1k, 5k, 10k), 1 = Lightweight (500, 1k, 2.5k), 2 = Extreme (5k, 10k, 25k)
+var synthetic_workload: int = 0
 
-# --- 3. Dynamic Ramp-Up -asetukset ---
-# Kasvumalli: 0 = Progressive Acceleration (Kiihtyvä), 1 = Constant Linear (Tasainen)
-var ramp_growth_mode: int = 0 
+# --- 3. Dynamic Ramp-Up Emitter Settings ---
+# Spawn growth model: 0 = Progressive Acceleration, 1 = Constant Linear
+var ramp_growth_mode: int = 0
 var ramp_base_spawn_rate: float = 300.0
 var ramp_acceleration_factor: float = 75.0
 
-# --- 4. Sessiohallinta & Suite Orchestrator ---
+# --- 4. Session Management & Suite Orchestrator ---
 var current_session_folder: String = ""
 var current_run_id: String = ""
 var current_manifest: Dictionary = {}
@@ -36,11 +46,15 @@ var benchmark_queue: Array[String] = []
 var is_running_full_suite: bool = false
 var force_greybox_benchmark: bool = false
 
+
+## Loads saved settings from disk, applies window/V-Sync rules, and ensures output folders exist[cite: 21].
 func _ready() -> void:
 	load_settings()
 	apply_settings()
 	_ensure_runs_directory()
 
+
+## Applies V-Sync, window mode, and frame rate cap settings to the active engine instance[cite: 21].
 func apply_settings() -> void:
 	if vsync_enabled:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
@@ -49,6 +63,8 @@ func apply_settings() -> void:
 	DisplayServer.window_set_mode(window_mode)
 	Engine.max_fps = max_fps_limit
 
+
+## Returns the per-step sampling duration in seconds for the selected benchmark profile[cite: 21].
 func get_sample_duration() -> float:
 	match benchmark_profile:
 		0: return 4.0
@@ -56,13 +72,16 @@ func get_sample_duration() -> float:
 		2: return 300.0
 		_: return 4.0
 
-# --- Dynaaminen testikonfiguraattori (Synthetic) ---
+
+# --- Dynamic Synthetic Test Matrix Generator ---
+
+## Generates the ordered list of synthetic A/B test step dictionaries for the active settings[cite: 21].
 func get_synthetic_configs(is_headless: bool = false) -> Array[Dictionary]:
 	var prefix = "Headless_" if is_headless else ""
 	var counts: Array[int] = []
 	match synthetic_workload:
-		0: counts = [1000, 5000, 10000] # Standard
-		1: counts = [500, 1000, 2500]   # Lightweight
+		0: counts = [1000, 5000, 10000]  # Standard
+		1: counts = [500, 1000, 2500]    # Lightweight
 		2: counts = [5000, 10000, 25000] # Extreme
 		_: counts = [1000, 5000, 10000]
 
@@ -95,14 +114,18 @@ func get_synthetic_configs(is_headless: bool = false) -> Array[Dictionary]:
 
 	return configs
 
+
 # ==============================================================================
-# SESSIOHALLINTA JA AIKALEIMATUT AJOKANSIOT
+# SESSION MANAGEMENT & TIMESTAMPED RUN DIRECTORIES
 # ==============================================================================
 
+## Creates the base runs directory if it does not already exist[cite: 21].
 func _ensure_runs_directory() -> void:
 	if not DirAccess.dir_exists_absolute(get_runs_base_dir()):
 		DirAccess.make_dir_recursive_absolute(get_runs_base_dir())
 
+
+## Initializes a new timestamped session directory with [code]manifest.json[/code] and [code]summary.csv[/code][cite: 21].
 func create_new_session(custom_label: String = "run") -> String:
 	_ensure_runs_directory()
 	
@@ -111,7 +134,7 @@ func create_new_session(custom_label: String = "run") -> String:
 		dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
 	]
 	
-	# Muodostetaan selkeä tunniste (esim. run_2026-11-10_18-20-15_full_suite)
+	# Build a human-readable session identifier (e.g., run_2026-11-12_22-58-26_full_suite_release)
 	var safe_label = custom_label.validate_filename()
 	current_run_id = "run_%s_%s" % [timestamp_str, safe_label]
 	current_session_folder = get_runs_base_dir().path_join(current_run_id)
@@ -119,10 +142,10 @@ func create_new_session(custom_label: String = "run") -> String:
 	DirAccess.make_dir_recursive_absolute(current_session_folder)
 	DirAccess.make_dir_recursive_absolute(current_session_folder.path_join("raw_frames"))
 	
-	# Luodaan ja alustetaan manifest.json
+	# Create and initialize session manifest.json
 	_init_session_manifest(timestamp_str, custom_label)
 	
-	# Alustetaan tyhjä summary.csv
+	# Initialize empty summary.csv with column headers
 	var sum_path = current_session_folder.path_join("summary.csv")
 	var f = FileAccess.open(sum_path, FileAccess.WRITE)
 	if f:
@@ -132,14 +155,20 @@ func create_new_session(custom_label: String = "run") -> String:
 	print("[GameSettings] New benchmark session initialized: %s" % current_session_folder)
 	return current_session_folder
 
+
+## Returns the active session folder path, creating a fallback session if none is active[cite: 21].
 func ensure_session_exists(fallback_label: String = "manual") -> String:
 	if current_session_folder.is_empty() or not DirAccess.dir_exists_absolute(current_session_folder):
 		return create_new_session(fallback_label)
 	return current_session_folder
 
+
+## Returns the current session root directory path[cite: 21].
 func get_current_session_folder() -> String:
 	return ensure_session_exists("single_run")
 
+
+## Returns the [code]raw_frames/[/code] subdirectory path for per-frame CSV exports[cite: 21].
 func get_current_raw_frames_folder() -> String:
 	var sess = get_current_session_folder()
 	var raw_dir = sess.path_join("raw_frames")
@@ -147,6 +176,8 @@ func get_current_raw_frames_folder() -> String:
 		DirAccess.make_dir_recursive_absolute(raw_dir)
 	return raw_dir
 
+
+## Populates hardware specifications and active configuration snapshot into [member current_manifest][cite: 21].
 func _init_session_manifest(_timestamp_str: String, label: String) -> void:
 	var workload_names = ["Standard (1k, 5k, 10k)", "Lightweight (500, 1k, 2.5k)", "Extreme (5k, 10k, 25k)"]
 	var mesh_mode_names = ["Full Matrix (1 & 5 Meshes)", "Single-Mesh Only (1 Draw Call)", "Multi-Mesh Only (5 Draw Calls)"]
@@ -186,6 +217,8 @@ func _init_session_manifest(_timestamp_str: String, label: String) -> void:
 	}
 	_save_manifest()
 
+
+## Serializes [member current_manifest] to [code]manifest.json[/code] in the active session directory[cite: 21].
 func _save_manifest() -> void:
 	if current_session_folder.is_empty(): return
 	var manifest_path = current_session_folder.path_join("manifest.json")
@@ -194,6 +227,8 @@ func _save_manifest() -> void:
 		f.store_string(JSON.stringify(current_manifest, "\t"))
 		f.close()
 
+
+## Appends completed stage summary rows to the active session's [code]summary.csv[/code][cite: 21].
 func append_summary_results(results: Array[Dictionary]) -> void:
 	var sess = get_current_session_folder()
 	var path = sess.path_join("summary.csv")
@@ -201,9 +236,9 @@ func append_summary_results(results: Array[Dictionary]) -> void:
 	
 	var f = FileAccess.open(path, FileAccess.READ_WRITE if file_exists else FileAccess.WRITE)
 	if f:
-		if file_exists: 
+		if file_exists:
 			f.seek_end()
-		else: 
+		else:
 			f.store_line("Config,Entities,FramesSampled,AvgFPS,StdDev_ms,FPS_1pct_Low,FPS_01pct_Low,AvgFrameTime_ms,AvgLogic_us,MinLogic_us,MaxLogic_us,AvgSync_us,AvgTotalSim_us,SceneNodes,StaticRAM_MB")
 		
 		for r in results:
@@ -215,9 +250,11 @@ func append_summary_results(results: Array[Dictionary]) -> void:
 			])
 		f.close()
 
-	# Ylläpidetään yhteensopivuuden vuoksi myös perinteistä juurikoostetta
+	# Mirror records to legacy root summary file for backward compatibility
 	_mirror_to_legacy_summary(results)
 
+
+## Appends summary records to the legacy root summary file[cite: 21].
 func _mirror_to_legacy_summary(results: Array[Dictionary]) -> void:
 	var file_exists = FileAccess.file_exists(get_legacy_summary_path())
 	var f = FileAccess.open(get_legacy_summary_path(), FileAccess.READ_WRITE if file_exists else FileAccess.WRITE)
@@ -233,16 +270,20 @@ func _mirror_to_legacy_summary(results: Array[Dictionary]) -> void:
 			])
 		f.close()
 
+
 # ==============================================================================
-# SUITE ORCHESTRATOR
+# MULTI-STAGE SUITE ORCHESTRATOR
 # ==============================================================================
 
+## Starts an automated multi-scene benchmark run under a shared session folder[cite: 21].
 func start_benchmark_suite(scene_paths: Array[String], session_label: String = "full_suite") -> void:
 	benchmark_queue = scene_paths.duplicate()
 	is_running_full_suite = true
 	create_new_session(session_label)
 	advance_benchmark_suite()
 
+
+## Transitions to the next queued benchmark scene or opens the results screen when complete[cite: 21].
 func advance_benchmark_suite() -> void:
 	if benchmark_queue.is_empty():
 		finalize_session()
@@ -254,6 +295,8 @@ func advance_benchmark_suite() -> void:
 			_save_manifest()
 		get_tree().change_scene_to_file(next_scene)
 
+
+## Called by each benchmark scene upon completion to advance the queue or finish the session[cite: 21].
 func finish_current_benchmark() -> void:
 	if is_running_full_suite and not benchmark_queue.is_empty():
 		advance_benchmark_suite()
@@ -261,6 +304,8 @@ func finish_current_benchmark() -> void:
 		finalize_session()
 		get_tree().change_scene_to_file("res://benchmark_results.tscn")
 
+
+## Marks the current session manifest as completed and writes the final end timestamp[cite: 21].
 func finalize_session() -> void:
 	is_running_full_suite = false
 	if not current_manifest.is_empty():
@@ -269,10 +314,12 @@ func finalize_session() -> void:
 		_save_manifest()
 	print("[GameSettings] Benchmark session finalized: %s" % current_run_id)
 
+
 # ==============================================================================
-# SESSIOIDEN INDEKSOINTI & TIEDOSTOJÄRJESTELMÄTYÖKALUT (Results-sivulle)
+# SESSION INDEXING & FILESYSTEM UTILITIES
 # ==============================================================================
 
+## Scans the runs directory and returns all valid session manifests sorted newest first[cite: 21].
 func get_all_run_sessions() -> Array[Dictionary]:
 	var runs: Array[Dictionary] = []
 	if not DirAccess.dir_exists_absolute(get_runs_base_dir()):
@@ -297,10 +344,12 @@ func get_all_run_sessions() -> Array[Dictionary]:
 			entry = dir.get_next()
 		dir.list_dir_end()
 
-	# Lajitellaan uusimmasta vanhimpaan aikaleiman mukaan
+	# Sort sessions from newest to oldest by start timestamp
 	runs.sort_custom(func(a, b): return a.get("timestamp_start", "") > b.get("timestamp_start", ""))
 	return runs
 
+
+## Opens the specified session directory in the host operating system's file explorer[cite: 21].
 func open_session_folder_in_os(folder_path: String = "") -> void:
 	var target = folder_path if not folder_path.is_empty() else current_session_folder
 	if target.is_empty():
@@ -308,6 +357,8 @@ func open_session_folder_in_os(folder_path: String = "") -> void:
 	var global_path = ProjectSettings.globalize_path(target)
 	OS.shell_open(global_path)
 
+
+## Permanently deletes a benchmark session directory and all its contents[cite: 21].
 func delete_session(folder_path: String) -> bool:
 	if not DirAccess.dir_exists_absolute(folder_path):
 		return false
@@ -318,6 +369,8 @@ func delete_session(folder_path: String) -> bool:
 		current_manifest.clear()
 	return true
 
+
+## Recursively removes files and subdirectories inside [param path][cite: 21].
 func _delete_dir_recursive(path: String) -> void:
 	var dir = DirAccess.open(path)
 	if dir:
@@ -334,10 +387,12 @@ func _delete_dir_recursive(path: String) -> void:
 		dir.list_dir_end()
 		DirAccess.remove_absolute(path)
 
+
 # ==============================================================================
-# ASETUSTEN PYSYVÄISTALLENNUS (settings.cfg)
+# PERSISTENT CONFIGURATION STORAGE (settings.cfg)
 # ==============================================================================
 
+## Saves all current display and benchmark settings to [code]user://settings.cfg[/code][cite: 21].
 func save_settings() -> void:
 	var config = ConfigFile.new()
 	config.set_value("display", "vsync_enabled", vsync_enabled)
@@ -351,6 +406,8 @@ func save_settings() -> void:
 	config.set_value("ramp_up", "ramp_acceleration_factor", ramp_acceleration_factor)
 	config.save(SETTINGS_PATH)
 
+
+## Loads settings from [code]user://settings.cfg[/code], writing defaults if missing[cite: 21].
 func load_settings() -> void:
 	var config = ConfigFile.new()
 	var err = config.load(SETTINGS_PATH)

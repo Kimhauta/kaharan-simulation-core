@@ -1,13 +1,21 @@
+## Interactive analytics and visualization dashboard for recorded benchmark sessions[cite: 20].
+##
+## Parses [code]manifest.json[/code], [code]summary.csv[/code], and per-frame Ramp-Up timelines
+## to render comparative speedup tables, 2D frame-time saturation curves, frame-pacing
+## jitter ratings, and hardware environment snapshots[cite: 20].
 extends Control
 
 const MAIN_MENU_PATH: String = "res://main_menu.tscn"
 
+
+## Resolves the base directory containing benchmark run folders[cite: 20].
 func _get_runs_base_dir() -> String:
 	if typeof(GameSettings) != TYPE_NIL:
 		return GameSettings.get_runs_base_dir()
 	return "res://user_files/runs"
 
-# Aktiivisen session data
+
+# Active session telemetry state
 var current_session_folder: String = ""
 var current_manifest: Dictionary = {}
 var summary_rows: Array[Dictionary] = []
@@ -16,14 +24,14 @@ var ramp_rendered_points_oop: Array[Vector2] = []
 var ramp_headless_points_dod: Array[Vector2] = []
 var ramp_headless_points_oop: Array[Vector2] = []
 
-# UI-komponentit
+# Top-level UI controls
 var option_sessions: OptionButton
 var btn_open_os: Button
 var btn_delete: Button
 var btn_back: Button
 var tab_container: TabContainer
 
-# Välilehtien komponentit
+# Tab-specific UI controls
 var txt_matrix: RichTextLabel
 var txt_stability: RichTextLabel
 var txt_manifest: RichTextLabel
@@ -32,28 +40,36 @@ var option_ramp_source: OptionButton
 var lbl_ramp_legend: RichTextLabel
 var lbl_ramp_metrics: Label
 
-# Sessiolistaus
+# Discovered run sessions metadata
 var available_sessions: Array[Dictionary] = []
 
+
+## Builds the analytics UI and loads the most recent benchmark session[cite: 20].
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	_build_ui_layout()
 	_refresh_session_list()
 
+
+## Returns to the main menu when Escape is pressed[cite: 20].
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			_go_to_menu()
 
+
+## Transitions back to the main menu scene[cite: 20].
 func _go_to_menu() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_PATH)
 
+
 # ==============================================================================
-# UI-RAKENTEEN AUTOMAATTINEN LUONTI
+# PROGRAMMATIC UI LAYOUT CONSTRUCTION
 # ==============================================================================
 
+## Constructs the header bar, session selector, and tabbed analytics container[cite: 20].
 func _build_ui_layout() -> void:
-	# Taustaväri
+	# Background backdrop
 	var bg = ColorRect.new()
 	bg.color = Color(0.06, 0.08, 0.11, 1.0)
 	bg.set_anchors_preset(PRESET_FULL_RECT)
@@ -71,7 +87,7 @@ func _build_ui_layout() -> void:
 	main_vbox.add_theme_constant_override("separation", 10)
 	margin.add_child(main_vbox)
 
-	# 1. Yläpalkki (Otsikko + Toiminnot)
+	# 1. Header Bar (Title & Actions)
 	var header_bar = HBoxContainer.new()
 	main_vbox.add_child(header_bar)
 
@@ -95,7 +111,7 @@ func _build_ui_layout() -> void:
 	btn_back.pressed.connect(_go_to_menu)
 	header_bar.add_child(btn_back)
 
-	# 2. Sessiohallintapalkki
+	# 2. Session Management Bar
 	var session_panel = PanelContainer.new()
 	var s_style = StyleBoxFlat.new()
 	s_style.bg_color = Color(0.10, 0.13, 0.18, 0.95)
@@ -129,7 +145,7 @@ func _build_ui_layout() -> void:
 	btn_delete.pressed.connect(_on_delete_session_pressed)
 	s_hbox.add_child(btn_delete)
 
-	# 3. Välilehtinäkymä
+	# 3. Analytics Tab Container
 	tab_container = TabContainer.new()
 	tab_container.size_flags_vertical = SIZE_EXPAND_FILL
 	main_vbox.add_child(tab_container)
@@ -139,6 +155,8 @@ func _build_ui_layout() -> void:
 	_build_tab_stability()
 	_build_tab_manifest()
 
+
+## Builds the Summary Matrix & Speedup tab[cite: 20].
 func _build_tab_matrix() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.name = "Summary Matrix & Speedup"
@@ -151,13 +169,15 @@ func _build_tab_matrix() -> void:
 	txt_matrix.custom_minimum_size = Vector2(800, 450)
 	scroll.add_child(txt_matrix)
 
+
+## Builds the Ramp-Up Curves (Timeline) tab with a custom 2D drawing canvas[cite: 20].
 func _build_tab_ramp_curves() -> void:
 	var vbox = VBoxContainer.new()
 	vbox.name = "Ramp-Up Curves (Timeline)"
 	vbox.add_theme_constant_override("separation", 8)
 	tab_container.add_child(vbox)
 
-	# Ohjauspalkki kuvaajalle
+	# Timeline graph control bar
 	var ctrl_bar = HBoxContainer.new()
 	ctrl_bar.add_theme_constant_override("separation", 14)
 	vbox.add_child(ctrl_bar)
@@ -179,7 +199,7 @@ func _build_tab_ramp_curves() -> void:
 	lbl_ramp_legend.text = "[color=#2ecc71]-- DOD Curve[/color]   [color=#e74c3c]-- OOP Curve[/color]   [color=#f39c12]-- 60 FPS Budget (16.67 ms)[/color]"
 	ctrl_bar.add_child(lbl_ramp_legend)
 
-	# Kuvaaja-alue
+	# 2D timeline plot area
 	var graph_panel = PanelContainer.new()
 	graph_panel.size_flags_vertical = SIZE_EXPAND_FILL
 	var g_style = StyleBoxFlat.new()
@@ -196,12 +216,14 @@ func _build_tab_ramp_curves() -> void:
 	graph_canvas.draw.connect(_on_graph_draw)
 	graph_panel.add_child(graph_canvas)
 
-	# Tilastotiedot kuvaajan alla
+	# Saturation summary label below the plot
 	lbl_ramp_metrics = Label.new()
 	lbl_ramp_metrics.text = "Analyzing saturation points..."
 	lbl_ramp_metrics.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
 	vbox.add_child(lbl_ramp_metrics)
 
+
+## Builds the Stability & Frame Pacing tab[cite: 20].
 func _build_tab_stability() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.name = "Stability & Frame Pacing"
@@ -214,6 +236,8 @@ func _build_tab_stability() -> void:
 	txt_stability.custom_minimum_size = Vector2(800, 450)
 	scroll.add_child(txt_stability)
 
+
+## Builds the Environment & Manifest metadata tab[cite: 20].
 func _build_tab_manifest() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.name = "Environment & Manifest"
@@ -226,10 +250,12 @@ func _build_tab_manifest() -> void:
 	txt_manifest.custom_minimum_size = Vector2(800, 450)
 	scroll.add_child(txt_manifest)
 
+
 # ==============================================================================
-# SESSIOIDEN LATAUS JA HALLINTA
+# SESSION LOADING & MANAGEMENT
 # ==============================================================================
 
+## Reloads all available benchmark sessions into the dropdown selector[cite: 20].
 func _refresh_session_list() -> void:
 	option_sessions.clear()
 	available_sessions.clear()
@@ -238,7 +264,7 @@ func _refresh_session_list() -> void:
 		available_sessions = GameSettings.get_all_run_sessions()
 
 	if available_sessions.is_empty():
-		# Tarkistetaan vanha koontitiedosto varalta
+		# Fall back to legacy single-file summary if present
 		if FileAccess.file_exists("res://user_files/benchmark_summary.dat"):
 			option_sessions.add_item("Legacy Single Summary (benchmark_summary.dat)")
 			current_session_folder = "res://user_files"
@@ -255,14 +281,18 @@ func _refresh_session_list() -> void:
 		var label = "%s  (%s)" % [run_id, time_str]
 		option_sessions.add_item(label, i)
 
-	# Valitaan oletuksena uusin ajo (indeksi 0)
+	# Select the most recent session (index 0) by default
 	option_sessions.select(0)
 	_load_session(0)
 
+
+## Handles session selection changes from the dropdown menu[cite: 20].
 func _on_session_selected(idx: int) -> void:
 	if idx >= 0 and idx < available_sessions.size():
 		_load_session(idx)
 
+
+## Loads CSV and manifest data for the session at [param idx] and refreshes all tabs[cite: 20].
 func _load_session(idx: int) -> void:
 	var sess = available_sessions[idx]
 	current_session_folder = sess.get("folder_path", "")
@@ -275,6 +305,8 @@ func _load_session(idx: int) -> void:
 	_render_manifest_tab()
 	_update_ramp_curve_display()
 
+
+## Loads legacy summary data when no manifest-based session directories exist[cite: 20].
 func _load_legacy_summary() -> void:
 	_load_summary_csv("res://user_files/benchmark_summary.dat")
 	_load_ramp_csvs()
@@ -283,6 +315,8 @@ func _load_legacy_summary() -> void:
 	txt_manifest.text = "[color=yellow]Legacy run data. No manifest.json available.[/color]"
 	_update_ramp_curve_display()
 
+
+## Clears all visualizations when no benchmark runs exist on disk[cite: 20].
 func _display_empty_state() -> void:
 	txt_matrix.text = "[center][color=gray]No benchmark data found. Open Benchmark Hub to run a benchmark suite.[/color][/center]"
 	txt_stability.text = ""
@@ -292,20 +326,26 @@ func _display_empty_state() -> void:
 	ramp_rendered_points_oop.clear()
 	graph_canvas.queue_redraw()
 
+
+## Opens the active session folder in the OS file manager[cite: 20].
 func _on_open_in_os_pressed() -> void:
 	if typeof(GameSettings) != TYPE_NIL and not current_session_folder.is_empty():
 		GameSettings.open_session_folder_in_os(current_session_folder)
 
+
+## Deletes the currently selected session folder and refreshes the list[cite: 20].
 func _on_delete_session_pressed() -> void:
 	if current_session_folder.is_empty(): return
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.delete_session(current_session_folder)
 		_refresh_session_list()
 
+
 # ==============================================================================
-# DATAN PARSINTA
+# TELEMETRY CSV PARSING
 # ==============================================================================
 
+## Parses [param file_path] into [member summary_rows] dictionaries keyed by column header[cite: 20].
 func _load_summary_csv(file_path: String) -> void:
 	summary_rows.clear()
 	if not FileAccess.file_exists(file_path): return
@@ -331,6 +371,8 @@ func _load_summary_csv(file_path: String) -> void:
 				row[headers[h].strip_edges()] = parts[h].strip_edges()
 		summary_rows.append(row)
 
+
+## Loads both rendered and headless Ramp-Up frame timelines for the active session[cite: 20].
 func _load_ramp_csvs() -> void:
 	ramp_rendered_points_dod.clear()
 	ramp_rendered_points_oop.clear()
@@ -349,6 +391,8 @@ func _load_ramp_csvs() -> void:
 		head_path = "res://user_files/ramp_headless_frames.csv" # Fallback
 	_parse_ramp_file(head_path, ramp_headless_points_dod, ramp_headless_points_oop)
 
+
+## Splits a Ramp-Up CSV timeline into DOD and OOP (EntityCount, FrameTime_ms) series[cite: 20].
 func _parse_ramp_file(path: String, out_dod: Array[Vector2], out_oop: Array[Vector2]) -> void:
 	if not FileAccess.file_exists(path): return
 	var f = FileAccess.open(path, FileAccess.READ)
@@ -357,7 +401,7 @@ func _parse_ramp_file(path: String, out_dod: Array[Vector2], out_oop: Array[Vect
 	var raw_dod: Array[Vector2] = []
 	var raw_oop: Array[Vector2] = []
 
-	var header = f.get_line()
+	var _header = f.get_line()
 	while not f.eof_reached():
 		var line = f.get_line().strip_edges()
 		if line.is_empty(): continue
@@ -377,6 +421,8 @@ func _parse_ramp_file(path: String, out_dod: Array[Vector2], out_oop: Array[Vect
 	_downsample_points(raw_dod, out_dod, 800)
 	_downsample_points(raw_oop, out_oop, 800)
 
+
+## Uniformly subsamples [param source] to at most [param max_pts] points for responsive 2D polyline rendering[cite: 20].
 func _downsample_points(source: Array[Vector2], dest: Array[Vector2], max_pts: int) -> void:
 	var n = source.size()
 	if n <= max_pts:
@@ -388,16 +434,18 @@ func _downsample_points(source: Array[Vector2], dest: Array[Vector2], max_pts: i
 		dest.append(source[idx])
 	dest.append(source[-1])
 
+
 # ==============================================================================
-# VÄLILEHTIEN RENDERÖINTI
+# TAB VIEW RENDERING
 # ==============================================================================
 
+## Renders the speedup highlight cards and full metrics BBCode table[cite: 20].
 func _render_matrix_tab() -> void:
 	if summary_rows.is_empty():
 		txt_matrix.text = "[color=yellow]No summary records found in this run.[/color]"
 		return
 
-	# Etsitään huippukuorman (10k tai 25k) nopeutuskerroin korteille
+	# Compute peak speedup multipliers at 10k entities for summary cards
 	var peak_speedup_str = "N/A"
 	var peak_logic_speedup_str = "N/A"
 	
@@ -449,6 +497,8 @@ func _render_matrix_tab() -> void:
 	bb += "[/table]"
 	txt_matrix.text = bb
 
+
+## Renders the frame-pacing standard deviation and consistency rating table[cite: 20].
 func _render_stability_tab() -> void:
 	if summary_rows.is_empty():
 		txt_stability.text = "[color=yellow]No data available.[/color]"
@@ -488,6 +538,8 @@ func _render_stability_tab() -> void:
 	bb += "[/table]"
 	txt_stability.text = bb
 
+
+## Renders hardware metadata and benchmark settings recorded in [member current_manifest][cite: 20].
 func _render_manifest_tab() -> void:
 	if current_manifest.is_empty():
 		txt_manifest.text = "[color=gray]No manifest data recorded for this session.[/color]"
@@ -522,10 +574,12 @@ func _render_manifest_tab() -> void:
 	bb += "[/code]"
 	txt_manifest.text = bb
 
+
 # ==============================================================================
-# RAMP-UP 2D-AIKAJANAKUVAUS (_DRAW)
+# RAMP-UP 2D TIMELINE VISUALIZATION (_DRAW)
 # ==============================================================================
 
+## Updates the saturation capacity summary label and triggers a 2D canvas redraw[cite: 20].
 func _update_ramp_curve_display() -> void:
 	var is_rendered = (option_ramp_source.selected == 0)
 	var dod_pts = ramp_rendered_points_dod if is_rendered else ramp_headless_points_dod
@@ -542,6 +596,8 @@ func _update_ramp_curve_display() -> void:
 	]
 	graph_canvas.queue_redraw()
 
+
+## Custom 2D draw callback plotting DOD vs. OOP frame time against entity population[cite: 20].
 func _on_graph_draw() -> void:
 	var rect = graph_canvas.get_rect()
 	var w = rect.size.x
@@ -559,11 +615,11 @@ func _on_graph_draw() -> void:
 	var dod_pts = ramp_rendered_points_dod if is_rendered else ramp_headless_points_dod
 	var oop_pts = ramp_rendered_points_oop if is_rendered else ramp_headless_points_oop
 
-	# Kuvaajan taustapaneeli
+	# Plot background and border
 	graph_canvas.draw_rect(Rect2(pad_l, pad_t, plot_w, plot_h), Color(0.06, 0.08, 0.12, 1.0))
 	graph_canvas.draw_rect(Rect2(pad_l, pad_t, plot_w, plot_h), Color(0.25, 0.3, 0.4, 0.8), false, 1.0)
 
-	# Lasketaan dynaamiset akselit
+	# Calculate dynamic axis bounds
 	var max_x = 1000.0
 	var max_y = 35.0
 	for p in dod_pts:
@@ -576,21 +632,21 @@ func _on_graph_draw() -> void:
 
 	var font = ThemeDB.fallback_font
 
-	# 16.67 ms (60 FPS) referenssiviiva
+	# 16.67 ms (60 FPS) target frame budget reference line
 	var y_60 = pad_t + plot_h - (16.6667 / max_y) * plot_h
 	if y_60 >= pad_t and y_60 <= pad_t + plot_h:
 		graph_canvas.draw_line(Vector2(pad_l, y_60), Vector2(pad_l + plot_w, y_60), Color(0.95, 0.6, 0.1, 0.85), 2.0)
 		graph_canvas.draw_string(font, Vector2(pad_l + 10, y_60 - 6), "60 FPS Target Budget (16.67 ms)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.95, 0.6, 0.1))
 
-	# Y-akselin tekstit
+	# Y-axis labels
 	graph_canvas.draw_string(font, Vector2(10, pad_t + 12), "%.1f ms" % max_y, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.6, 0.7, 0.8))
 	graph_canvas.draw_string(font, Vector2(10, pad_t + plot_h), "0.0 ms", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.6, 0.7, 0.8))
 
-	# X-akselin tekstit
+	# X-axis labels
 	graph_canvas.draw_string(font, Vector2(pad_l, pad_t + plot_h + 24), "0", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.7, 0.8))
 	graph_canvas.draw_string(font, Vector2(pad_l + plot_w - 70, pad_t + plot_h + 24), "%d agents" % int(max_x), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.7, 0.8))
 
-	# Muunnetaan pisteet näyttökoordinaateiksi
+	# Project data points into canvas screen space
 	var screen_dod: PackedVector2Array = []
 	for p in dod_pts:
 		var px = pad_l + (p.x / max_x) * plot_w

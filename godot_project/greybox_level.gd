@@ -1,3 +1,9 @@
+## Three-room architectural Greybox environment for interactive sandbox testing and 4-pass LOD benchmarks.
+##
+## Builds a 100x100 m production test facility (West Atrium, East Reactor Courtyard, and South Grand Hangar
+## connected by two corridors) with ground-projected Simulation LOD radius rings (25 m and 55 m).
+## Supports both interactive free-roam exploration and an automated 4-pass spline camera tour
+## comparing OOP Base, OOP + LOD, DOD Base, and DOD + LOD with trigonometric steering kinematics.
 extends Node3D
 
 const START_DELAY: float = 2.0
@@ -12,10 +18,10 @@ const MAX_SAFE_OOP_ENTITIES: int = 15000
 
 var bridge: SimulationBridge = null
 var pass_duration: float = 45.0
-var pop_tier_index: int = 1 # Oletus: 10 000 entiteettiä (turvallinen OOP + DOD 4-vaiheajoon)
+var pop_tier_index: int = 1 # Default: 10,000 entities (safe for both OOP and DOD 4-pass runs)
 var entity_count: int = 10000
 
-# Tila: Pelattava vapaa kamera vs. 4-vaiheinen 3DMark Fly-Through
+# Interactive sandbox vs. 4-pass automated Fly-Through state
 var is_benchmark_mode: bool = false
 var interactive_use_dod: bool = true
 var interactive_lod_enabled: bool = true
@@ -24,11 +30,11 @@ var mouse_captured: bool = false
 var cam_yaw: float = 0.0
 var cam_pitch: float = -12.0
 
-# Monityyppiset MultiMesh-resurssit (DOD)
+# Multi-archetype MultiMesh resources (DOD)
 var type_meshes: Array[Mesh] = []
 var extra_mmis: Array[MultiMeshInstance3D] = []
 
-# OOP Baseline -rakenteet
+# OOP baseline SceneTree structures and LOD counters
 var oop_container: Node3D = null
 var oop_nodes: Array[MeshInstance3D] = []
 var oop_velocities: Array[Vector3] = []
@@ -38,7 +44,7 @@ var oop_lod0_count: int = 0
 var oop_lod1_count: int = 0
 var oop_lod2_count: int = 0
 
-# Kamerat ja rata
+# Cameras, spline flight path, and ground LOD zone rings
 var path_3d: Path3D
 var path_follow: PathFollow3D
 var bench_camera: Camera3D
@@ -46,7 +52,7 @@ var player_camera: Camera3D
 var lod_ring_0: MeshInstance3D
 var lod_ring_1: MeshInstance3D
 
-# Benchmark-tilakone (4 kierrosta: OOP Base, OOP LOD, DOD Base, DOD LOD)
+## Automated 4-pass benchmark state machine.
 enum BenchState { COUNTDOWN, WARMING_UP, SAMPLING, FINISHED }
 var state: BenchState = BenchState.COUNTDOWN
 var timer: float = 0.0
@@ -58,12 +64,14 @@ var summary_results: Array[Dictionary] = []
 var last_logic_us: float = 0.0
 var last_sync_us: float = 0.0
 
-# HUD
+# HUD widgets
 var hud_label: RichTextLabel
 var progress_bar: ProgressBar
 
+
+## Initializes execution priority, builds the 3-room level, and enters benchmark or sandbox mode.
 func _ready() -> void:
-	# Päivitetään kameran ja tarkkailijan sijainti ENNEN SimulationBridge._process()-kutsua
+	# Ensure camera and observer positions update BEFORE SimulationBridge._process() executes
 	process_priority = -10
 
 	if typeof(GameSettings) != TYPE_NIL:
@@ -71,17 +79,17 @@ func _ready() -> void:
 		is_benchmark_mode = GameSettings.is_running_full_suite or GameSettings.force_greybox_benchmark
 		GameSettings.force_greybox_benchmark = false
 
-		# 3DMark-tyylinen rauhallinen kameran läpilentoaika profiilin mukaan
+		# Configure spline fly-through duration according to active benchmark profile
 		match GameSettings.benchmark_profile:
-			0: pass_duration = 25.0 # Quick: ~1 min 40 s (4 kierrosta)
-			1: pass_duration = 45.0 # Standard: 3 min 00 s (4 kierrosta, ~4.5 m/s)
-			2: pass_duration = 75.0 # Soak: 5 min 00 s (4 kierrosta)
+			0: pass_duration = 25.0 # Quick: ~1 min 40 s (4 passes)
+			1: pass_duration = 45.0 # Standard: 3 min 00 s (4 passes, ~4.5 m/s)
+			2: pass_duration = 75.0 # Soak: 5 min 00 s (4 passes)
 			_: pass_duration = 45.0
 
 		match GameSettings.synthetic_workload:
-			1: pop_tier_index = 0 # Lightweight: 5 000
-			2: pop_tier_index = 2 # Extreme: 15 000
-			_: pop_tier_index = 1 # Standard: 10 000
+			1: pop_tier_index = 0 # Lightweight: 5,000
+			2: pop_tier_index = 2 # Extreme: 15,000
+			_: pop_tier_index = 1 # Standard: 10,000
 		entity_count = POPULATION_TIERS[pop_tier_index]
 
 	_ensure_bridge()
@@ -95,21 +103,23 @@ func _ready() -> void:
 	else:
 		_enter_interactive_mode()
 
+
+## Handles FPS mouse look and left-click cursor recapture in interactive sandbox mode.
 func _input(event: InputEvent) -> void:
 	if is_benchmark_mode:
 		return
 
-	# Hiirellä katsominen suoraan aina kun hiiri on kaapattuna
 	if event is InputEventMouseMotion and mouse_captured:
 		cam_yaw -= event.relative.x * 0.18
 		cam_pitch = clampf(cam_pitch - event.relative.y * 0.18, -85.0, 85.0)
 		if player_camera:
 			player_camera.rotation_degrees = Vector3(cam_pitch, cam_yaw, 0.0)
-	# Vasen klikkaus lukitsee hiiren takaisin, jos se oli vapautettu M-näppäimellä
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if not mouse_captured:
 			_set_mouse_capture(true)
 
+
+## Handles keyboard hotkeys for mode switching, room teleportation, LOD toggling, and population scaling.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
@@ -153,10 +163,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				if not is_benchmark_mode:
 					_change_population_tier(-1)
 
+
+## Sets mouse cursor capture state for first-person camera look.
 func _set_mouse_capture(capture: bool) -> void:
 	mouse_captured = capture
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if capture else Input.MOUSE_MODE_VISIBLE)
 
+
+## Releases cursor capture and returns to the Benchmark Hub (if running a suite) or Main Menu.
 func _exit_to_menu() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	if typeof(GameSettings) != TYPE_NIL:
@@ -167,6 +181,8 @@ func _exit_to_menu() -> void:
 			return
 	get_tree().change_scene_to_file("res://main_menu.tscn")
 
+
+## Locates or instantiates the [SimulationBridge] GDExtension node.
 func _ensure_bridge() -> void:
 	bridge = get_node_or_null("SimulationBridge") as SimulationBridge
 	if bridge == null:
@@ -175,10 +191,12 @@ func _ensure_bridge() -> void:
 		add_child(bridge)
 	bridge.set_process(true)
 
+
 # ==============================================================================
-# KOLMEN HUONEEN + KAHDEN KÄYTÄVÄN GREYBOX-ARKKITEHTUURI (100 x 100 m)
+# THREE-ROOM & TWO-CORRIDOR GREYBOX ARCHITECTURE (100 x 100 m)
 # ==============================================================================
 
+## Procedurally constructs the sky environment, directional lighting, 3 rooms, 2 corridors, and LOD rings.
 func _build_three_room_greybox_level() -> void:
 	var world_env = WorldEnvironment.new()
 	var env = Environment.new()
@@ -206,20 +224,20 @@ func _build_three_room_greybox_level() -> void:
 	var mat_floor = _make_std_mat(Color(0.15, 0.17, 0.20), 0.85)
 	var mat_wall = _make_std_mat(Color(0.28, 0.32, 0.38), 0.75)
 	var mat_corridor = _make_std_mat(Color(0.22, 0.25, 0.30), 0.65)
-	var mat_room1 = _make_std_mat(Color(0.22, 0.52, 0.88), 0.45) # Huone 1: Sininen
-	var mat_room2 = _make_std_mat(Color(0.88, 0.48, 0.18), 0.45) # Huone 2: Oranssi
-	var mat_room3 = _make_std_mat(Color(0.20, 0.76, 0.52), 0.45) # Huone 3: Smaragdi
+	var mat_room1 = _make_std_mat(Color(0.22, 0.52, 0.88), 0.45) # Room 1: Blue
+	var mat_room2 = _make_std_mat(Color(0.88, 0.48, 0.18), 0.45) # Room 2: Orange
+	var mat_room3 = _make_std_mat(Color(0.20, 0.76, 0.52), 0.45) # Room 3: Emerald
 
-	# Lattia (104 x 104 m)
+	# Arena floor (104 x 104 m)
 	_spawn_box(Vector3(0.0, -0.85, 0.0), Vector3(104.0, 1.0, 104.0), mat_floor)
 
-	# Ulkoseinät (+/- 50.6 m)
+	# Perimeter walls (+/- 50.6 m)
 	_spawn_box(Vector3(0.0, 3.5, -50.6), Vector3(102.0, 8.0, 1.2), mat_wall)
 	_spawn_box(Vector3(0.0, 3.5,  50.6), Vector3(102.0, 8.0, 1.2), mat_wall)
 	_spawn_box(Vector3(-50.6, 3.5, 0.0), Vector3(1.2, 8.0, 102.0), mat_wall)
 	_spawn_box(Vector3( 50.6, 3.5, 0.0), Vector3(1.2, 8.0, 102.0), mat_wall)
 
-	# --- VÄLISEINÄT JA KÄYTÄVÄ 1 (X: -16..16, Z: -36..-20) ---
+	# --- PARTITION WALLS & CORRIDOR 1 (X: -16..16, Z: -36..-20) ---
 	_spawn_box(Vector3(-16.0, 3.5, -43.0), Vector3(1.4, 8.0, 14.0), mat_wall)
 	_spawn_box(Vector3(-16.0, 3.5,  -7.0), Vector3(1.4, 8.0, 26.0), mat_wall)
 	_spawn_box(Vector3( 16.0, 3.5, -43.0), Vector3(1.4, 8.0, 14.0), mat_wall)
@@ -229,7 +247,7 @@ func _build_three_room_greybox_level() -> void:
 	for bx in [-12.0, -4.0, 4.0, 12.0]:
 		_spawn_box(Vector3(bx, 7.2, -28.0), Vector3(1.6, 0.8, 17.2), mat_room1)
 
-	# --- VÄLISEINÄT JA KÄYTÄVÄ 2 (X: 24..42, Z: 6..20) ---
+	# --- PARTITION WALLS & CORRIDOR 2 (X: 24..42, Z: 6..20) ---
 	_spawn_box(Vector3(-13.0, 3.5, 6.0), Vector3(74.0, 8.0, 1.4), mat_wall)
 	_spawn_box(Vector3( 46.0, 3.5, 6.0), Vector3( 8.0, 8.0, 1.4), mat_wall)
 	_spawn_box(Vector3(-13.0, 3.5, 20.0), Vector3(74.0, 8.0, 1.4), mat_wall)
@@ -239,7 +257,7 @@ func _build_three_room_greybox_level() -> void:
 	for bz in [9.0, 13.0, 17.0]:
 		_spawn_box(Vector3(33.0, 7.2, bz), Vector3(19.2, 0.8, 1.6), mat_room2)
 
-	# --- HUONEKOHTAISET MAAMERKIT ---
+	# --- SECTOR ARCHITECTURAL LANDMARKS ---
 	_spawn_box(Vector3(-34.0, 5.5, -18.0), Vector3(4.5, 12.0, 4.5), mat_room1)
 	_spawn_box(Vector3(-34.0, 5.5, -38.0), Vector3(4.5, 12.0, 4.5), mat_room1)
 
@@ -250,18 +268,22 @@ func _build_three_room_greybox_level() -> void:
 	_spawn_box(Vector3(-28.0, 5.0, 35.0), Vector3(4.5, 11.0, 4.5), mat_room3)
 	_spawn_box(Vector3( 28.0, 5.0, 35.0), Vector3(4.5, 11.0, 4.5), mat_room3)
 
-	# Visuaaliset LOD-vyöhykekehät maanpinnassa
+	# Ground-projected visual LOD threshold rings
 	lod_ring_0 = _create_lod_ring(LOD1_RADIUS, Color(0.2, 0.95, 0.45, 0.75))
 	lod_ring_1 = _create_lod_ring(LOD2_RADIUS, Color(0.95, 0.60, 0.15, 0.65))
 	add_child(lod_ring_0)
 	add_child(lod_ring_1)
 
+
+## Helper creating a [StandardMaterial3D] with the given albedo color and roughness.
 func _make_std_mat(col: Color, rough: float) -> StandardMaterial3D:
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = col
 	mat.roughness = rough
 	return mat
 
+
+## Spawns a static architectural box mesh at [param pos] with dimensions [param sz].
 func _spawn_box(pos: Vector3, sz: Vector3, mat: Material) -> void:
 	var bm = BoxMesh.new()
 	bm.size = sz
@@ -271,6 +293,8 @@ func _spawn_box(pos: Vector3, sz: Vector3, mat: Material) -> void:
 	mi.position = pos
 	add_child(mi)
 
+
+## Creates an unshaded ground-plane torus ring visualizing a radial Simulation LOD threshold.
 func _create_lod_ring(radius: float, col: Color) -> MeshInstance3D:
 	var torus = TorusMesh.new()
 	torus.inner_radius = radius - 0.18
@@ -290,28 +314,30 @@ func _create_lod_ring(radius: float, col: Color) -> MeshInstance3D:
 	mi.position = Vector3(0.0, -0.25, 0.0)
 	return mi
 
+
 # ==============================================================================
-# KAMERAT: 12-PISTEEN FLY-THROUGH-RATA & PELATTAVA KAMERA
+# CAMERAS: 12-WAYPOINT SPLINE FLY-THROUGH & INTERACTIVE PLAYER CAMERA
 # ==============================================================================
 
+## Builds the 12-waypoint 204-meter Path3D camera track and initializes both cameras.
 func _build_cameras_and_flight_path() -> void:
 	path_3d = Path3D.new()
 	var curve = Curve3D.new()
 
-	# 12 ohjauspistettä (~204 m reitti), joissa tunnelien sisään- ja ulosmenot on linjattu keskelle käytävää
+	# 12 control waypoints (~204 m route) aligned smoothly through corridor entrances and exits
 	var waypoints: Array[Vector3] = [
-		Vector3(-36.0, 4.8, -40.0), # 1. Huone 1: Sisääntulo
-		Vector3(-26.0, 4.2, -28.0), # 2. Huone 1: Käännös kohti Käytävä 1:tä
-		Vector3(-12.0, 3.6, -28.0), # 3. Käytävä 1: Länsisuun sisäänmeno
-		Vector3( 12.0, 3.6, -28.0), # 4. Käytävä 1: Itäsuun ulostulo
-		Vector3( 26.0, 4.2, -28.0), # 5. Huone 2: Saapuminen reaktoripihalle
-		Vector3( 38.0, 5.0, -16.0), # 6. Huone 2: Kierto reaktorin itäpuolelta
-		Vector3( 33.0, 4.2,  -2.0), # 7. Huone 2: Linjaus Käytävä 2:n suulle
-		Vector3( 33.0, 3.6,   7.0), # 8. Käytävä 2: Pohjoispään sisäänmeno
-		Vector3( 33.0, 3.6,  19.0), # 9. Käytävä 2: Eteläpään ulostulo
-		Vector3( 33.0, 4.8,  32.0), # 10. Huone 3: Eteläisen hangaarin itäsiipi
-		Vector3(  0.0, 5.8,  40.0), # 11. Huone 3: Panoraama keskustornin ohi
-		Vector3(-36.0, 5.0,  34.0)  # 12. Huone 3: Länsisiiven näköalapaikka
+		Vector3(-36.0, 4.8, -40.0), # 1. Room 1: Entrance
+		Vector3(-26.0, 4.2, -28.0), # 2. Room 1: Turn toward Corridor 1
+		Vector3(-12.0, 3.6, -28.0), # 3. Corridor 1: West portal entry
+		Vector3( 12.0, 3.6, -28.0), # 4. Corridor 1: East portal exit
+		Vector3( 26.0, 4.2, -28.0), # 5. Room 2: Reactor courtyard arrival
+		Vector3( 38.0, 5.0, -16.0), # 6. Room 2: East flank around central reactor
+		Vector3( 33.0, 4.2,  -2.0), # 7. Room 2: Alignment with Corridor 2 entrance
+		Vector3( 33.0, 3.6,   7.0), # 8. Corridor 2: North airlock entry
+		Vector3( 33.0, 3.6,  19.0), # 9. Corridor 2: South airlock exit
+		Vector3( 33.0, 4.8,  32.0), # 10. Room 3: South hangar east wing
+		Vector3(  0.0, 5.8,  40.0), # 11. Room 3: Panoramic sweep past central tower
+		Vector3(-36.0, 5.0,  34.0)  # 12. Room 3: West observation deck
 	]
 
 	for i in range(waypoints.size()):
@@ -340,6 +366,8 @@ func _build_cameras_and_flight_path() -> void:
 	add_child(player_camera)
 	_teleport_player_to_room(1)
 
+
+## Teleports the free-roam player camera to a preset vantage point in room [param room_num] (1..3).
 func _teleport_player_to_room(room_num: int) -> void:
 	if not player_camera: return
 	match room_num:
@@ -357,6 +385,8 @@ func _teleport_player_to_room(room_num: int) -> void:
 			cam_pitch = -12.0
 	player_camera.rotation_degrees = Vector3(cam_pitch, cam_yaw, 0.0)
 
+
+## Returns the human-readable sector name corresponding to world coordinates [param pos].
 func _get_current_zone_name(pos: Vector3) -> String:
 	if pos.z > 20.0:
 		return "Room 3/3: South Grand Hangar"
@@ -369,13 +399,15 @@ func _get_current_zone_name(pos: Vector3) -> String:
 	else:
 		return "Room 2/3: East Reactor Courtyard"
 
+
+## Initializes five color-coded 12-triangle cube MultiMesh instances and the OOP node container.
 func _init_multi_type_resources() -> void:
 	var colors = [
-		Color(0.2, 0.85, 0.4), # Arkkityyppi 0: Vihreä kuutio
-		Color(0.2, 0.6, 1.0),  # Arkkityyppi 1: Sininen kuutio
-		Color(0.95, 0.6, 0.1), # Arkkityyppi 2: Oranssi kuutio
-		Color(0.9, 0.25, 0.3), # Arkkityyppi 3: Punainen kuutio
-		Color(0.7, 0.3, 0.95)  # Arkkityyppi 4: Violetti kuutio
+		Color(0.2, 0.85, 0.4), # Archetype 0: Green cube
+		Color(0.2, 0.6, 1.0),  # Archetype 1: Blue cube
+		Color(0.95, 0.6, 0.1), # Archetype 2: Orange cube
+		Color(0.9, 0.25, 0.3), # Archetype 3: Red cube
+		Color(0.7, 0.3, 0.95)  # Archetype 4: Purple cube
 	]
 	type_meshes.clear()
 	extra_mmis.clear()
@@ -407,12 +439,13 @@ func _init_multi_type_resources() -> void:
 	oop_container.visible = false
 	add_child(oop_container)
 
+
 # ==============================================================================
-# ENTITEETTIEN ALUSTUS (DOD C++ VS. OOP SCENE TREE)
+# ENTITY SPAWNING & ARCHITECTURE SWITCHING (DOD C++ VS. OOP SCENETREE)
 # ==============================================================================
 
+## Rebuilds the active simulation population in either C++ DOD or GDScript OOP mode.
 func _respawn_active_mode(count: int, use_dod: bool, lod_on: bool) -> void:
-	# Siivotaan vanhat OOP-solmut
 	for node in oop_nodes:
 		node.free()
 	oop_nodes.clear()
@@ -453,10 +486,12 @@ func _respawn_active_mode(count: int, use_dod: bool, lod_on: bool) -> void:
 		oop_lod2_count = 0
 		oop_sim_time = 0.0
 
+
 # ==============================================================================
-# TILOJEN VAIHTO (INTERACTIVE DEMO VS. 4-PASS 3DMARK BENCHMARK)
+# MODE TRANSITIONS (INTERACTIVE SANDBOX VS. 4-PASS PRODUCTION BENCHMARK)
 # ==============================================================================
 
+## Activates free-roam sandbox mode with mouse look and live architecture/LOD hotkeys.
 func _enter_interactive_mode() -> void:
 	is_benchmark_mode = false
 	_set_mouse_capture(true)
@@ -467,6 +502,8 @@ func _enter_interactive_mode() -> void:
 	_respawn_active_mode(entity_count, interactive_use_dod, interactive_lod_enabled)
 	_update_ring_visibility()
 
+
+## Configures and starts the automated 4-pass spline fly-through benchmark (OOP/DOD x Base/LOD).
 func _enter_benchmark_mode() -> void:
 	is_benchmark_mode = true
 	_set_mouse_capture(false)
@@ -474,7 +511,7 @@ func _enter_benchmark_mode() -> void:
 	bench_camera.make_current()
 	progress_bar.visible = true
 
-	# Varmistetaan ettei OOP-kierros ylitä 15k rajaa, vaikka interaktiivisessa tilassa olisi ollut 50k
+	# Clamp entity count to MAX_SAFE_OOP_ENTITIES so all 4 passes run at identical population
 	var bench_count = mini(entity_count, MAX_SAFE_OOP_ENTITIES)
 	entity_count = bench_count
 	var count_label = "%dk" % int(bench_count / 1000.0)
@@ -492,6 +529,8 @@ func _enter_benchmark_mode() -> void:
 	timer = 0.0
 	_update_camera_flight(0.0)
 
+
+## Steps the sandbox entity population tier up or down by [param delta_idx].
 func _change_population_tier(delta_idx: int) -> void:
 	pop_tier_index = clampi(pop_tier_index + delta_idx, 0, POPULATION_TIERS.size() - 1)
 	entity_count = POPULATION_TIERS[pop_tier_index]
@@ -499,15 +538,19 @@ func _change_population_tier(delta_idx: int) -> void:
 		interactive_use_dod = true
 	_respawn_active_mode(entity_count, interactive_use_dod, interactive_lod_enabled)
 
+
+## Updates visibility of the ground-projected 25 m and 55 m LOD threshold rings.
 func _update_ring_visibility() -> void:
 	var vis = interactive_lod_enabled and show_lod_rings
 	if lod_ring_0: lod_ring_0.visible = vis
 	if lod_ring_1: lod_ring_1.visible = vis
 
+
 # ==============================================================================
-# PÄÄSILMUKKA JA MITTAUSLOGIIKKA
+# MAIN FRAME LOOP & TELEMETRY RECORDING
 # ==============================================================================
 
+## Updates observer position, advances DOD or OOP simulation, and updates benchmark state and HUD.
 func _process(delta: float) -> void:
 	if is_benchmark_mode and state == BenchState.FINISHED:
 		return
@@ -541,6 +584,8 @@ func _process(delta: float) -> void:
 
 	_update_hud()
 
+
+## Moves the free-roam camera via WASD/QE/Space/Ctrl and syncs observer coordinates to C++ and LOD rings.
 func _process_player_movement(delta: float) -> void:
 	if not player_camera: return
 
@@ -567,6 +612,8 @@ func _process_player_movement(delta: float) -> void:
 	if lod_ring_1 and lod_ring_1.visible:
 		lod_ring_1.position = Vector3(cam_pos.x, -0.25, cam_pos.z)
 
+
+## Advances the automated benchmark camera along [member path_3d] at normalized progress [param ratio].
 func _update_camera_flight(ratio: float) -> void:
 	if not path_follow or not path_3d or not path_3d.curve: return
 
@@ -587,6 +634,8 @@ func _update_camera_flight(ratio: float) -> void:
 	if lod_ring_1 and lod_ring_1.visible:
 		lod_ring_1.position = Vector3(cam_pos.x, -0.25, cam_pos.z)
 
+
+## Initializes benchmark pass [param idx], resets the spline camera, and enters warm-up.
 func _start_benchmark_step(idx: int) -> void:
 	var cfg = bench_configs[idx]
 	current_step_samples.clear()
@@ -601,6 +650,8 @@ func _start_benchmark_step(idx: int) -> void:
 	if lod_ring_1: lod_ring_1.visible = lod_on
 	_update_camera_flight(0.0)
 
+
+## Drives the 4-pass fly-through state machine (countdown, warm-up, spline recording, finalization).
 func _update_benchmark_state_machine(delta: float) -> void:
 	timer += delta
 
@@ -635,6 +686,8 @@ func _update_benchmark_state_machine(delta: float) -> void:
 				else:
 					_finish_benchmark_and_return()
 
+
+## Records per-frame timing, memory, and Simulation LOD distribution counts for the active pass.
 func _record_frame_sample(delta: float) -> void:
 	var cfg = bench_configs[step_index]
 	var frame_ms = delta * 1000.0
@@ -662,6 +715,8 @@ func _record_frame_sample(delta: float) -> void:
 		"lod2": l2
 	})
 
+
+## Writes per-frame LOD telemetry CSV and computes statistical summary metrics for the completed pass.
 func _finalize_benchmark_step() -> void:
 	var cfg = bench_configs[step_index]
 	var n = current_step_samples.size()
@@ -733,6 +788,8 @@ func _finalize_benchmark_step() -> void:
 		"ram_mb": current_step_samples[0]["ram_mb"]
 	})
 
+
+## Appends 4-pass fly-through summary records to [GameSettings] and finishes the benchmark run.
 func _finish_benchmark_and_return() -> void:
 	state = BenchState.FINISHED
 	set_process(false)
@@ -740,10 +797,12 @@ func _finish_benchmark_and_return() -> void:
 		GameSettings.append_summary_results(summary_results)
 		GameSettings.finish_current_benchmark()
 
+
 # ==============================================================================
-# OOP VERROKKISILMUKKA (ILMAN LOD:IA JA SAMALLA ETÄISYYSPERUSTEISELLA LOD:ILLA)
+# OOP REFERENCE LOOP (BASELINE & MATCHED RADIAL SIMULATION LOD)
 # ==============================================================================
 
+## Advances OOP agents with trigonometric steering and optional 3-tier staggered Simulation LOD.
 func _tick_oop(delta: float, observer_pos: Vector3, lod_enabled: bool) -> void:
 	var total = oop_nodes.size()
 	if total == 0: return
@@ -856,10 +915,12 @@ func _tick_oop(delta: float, observer_pos: Vector3, lod_enabled: bool) -> void:
 	oop_lod1_count = c1
 	oop_lod2_count = c2
 
+
 # ==============================================================================
-# TELEMETRIA-HUD
+# TELEMETRY HUD
 # ==============================================================================
 
+## Constructs the emerald-bordered telemetry HUD overlay panel.
 func _build_telemetry_hud() -> void:
 	var canvas = CanvasLayer.new()
 	add_child(canvas)
@@ -893,6 +954,8 @@ func _build_telemetry_hud() -> void:
 	progress_bar.custom_minimum_size = Vector2(530, 18)
 	vbox.add_child(progress_bar)
 
+
+## Updates the HUD with current sector name, LOD distribution counts, frame time, and RAM usage.
 func _update_hud() -> void:
 	if is_benchmark_mode and state == BenchState.FINISHED:
 		return

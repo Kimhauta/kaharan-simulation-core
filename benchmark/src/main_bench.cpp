@@ -1,9 +1,27 @@
+/**
+ * @file main_bench.cpp
+ * @brief Standalone native C++20 micro-benchmark executable for Kaharan Simulation Core.
+ *
+ * Executes headless simulation workloads directly against the engine-agnostic
+ * kaharan::core library without any Godot Engine or GDExtension overhead.
+ * Used to measure raw CPU cache throughput, SIMD auto-vectorization, and
+ * Simulation LOD scaling across varying entity counts.
+ */
+
 #include <iostream>
 #include <iomanip>
 #include <chrono>
 #include <vector>
 #include "core/simulation.hpp"
 
+ /**
+  * @brief Runs a timed simulation micro-benchmark for a fixed entity workload.
+  *
+  * @param entity_count Number of active agents to spawn into the SoA registry.
+  * @param steering     Enables trigonometric heading oscillation per agent when true.
+  * @param lod_enabled  Enables distance-based 3-tier Simulation LOD when true.
+  * @param test_frames  Number of simulation ticks to measure after warm-up (default: 2000).
+  */
 void run_benchmark_for_count(size_t entity_count, bool steering, bool lod_enabled, int test_frames = 2000) {
     kaharan::core::SimulationWorld world;
     constexpr float DELTA = 0.0166667f;
@@ -14,7 +32,7 @@ void run_benchmark_for_count(size_t entity_count, bool steering, bool lod_enable
     world.set_lod_thresholds(25.0f, 55.0f);
     world.spawn_test_agents(entity_count);
 
-    // Lyhyt lämmittely
+    // Warm-up phase to stabilize CPU caches and branch predictors
     for (int w = 0; w < 100; ++w) {
         world.tick(DELTA);
     }
@@ -39,6 +57,11 @@ void run_benchmark_for_count(size_t entity_count, bool steering, bool lod_enable
         << std::endl;
 }
 
+/**
+ * @brief Application entry point executing linear and LOD-enabled benchmark suites.
+ *
+ * @return Exit status code (0 on successful completion).
+ */
 int main() {
     std::cout << "====================================================================================" << std::endl;
     std::cout << " Kaharan Simulation Core - Standalone Native C++20 Micro-Benchmark (Zero Godot)     " << std::endl;

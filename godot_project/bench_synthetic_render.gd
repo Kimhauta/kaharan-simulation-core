@@ -1,32 +1,38 @@
+## Rendered Synthetic A/B Benchmark Suite comparing C++20 DOD against GDScript OOP.
+##
+## Evaluates fixed entity workloads (e.g., 1k, 5k, 10k) across Single-Mesh (1 Draw Call)
+## and Multi-Mesh (5 Draw Calls) configurations using uniform 12-triangle cubes to isolate
+## memory layout, GPU instancing, and CPU simulation throughput from polygon count variance.
 extends Node3D
 
 @onready var bridge: SimulationBridge = $SimulationBridge
 
+## Tested architecture and draw-call batching variants.
 enum SimVariant { DOD_SINGLE_MESH, DOD_MULTI_MESH, OOP_SINGLE_MESH, OOP_MULTI_MESH }
 
 const START_DELAY: float = 1.5
 const WARMUP_DURATION: float = 1.5
 const NUM_MESH_TYPES: int = 5
 
-# Asetuksista ohjautuvat muuttujat (ei kovakoodattuja sample_duration-vakioita)
+# Configuration-driven benchmark parameters (populated from GameSettings)
 var sample_duration: float = 4.0
 var current_variant: SimVariant = SimVariant.DOD_SINGLE_MESH
 var entity_count: int = 1000
 
-# Monityyppiset resurssit (extra_mmis[0] toimii myös 1-Mesh -tilassa)
+# Multi-archetype rendering resources (extra_mmis[0] is also used in Single-Mesh mode)
 var type_meshes: Array[Mesh] = []
 var extra_mmis: Array[MultiMeshInstance3D] = []
 
-# OOP Baseline -rakenteet
+# OOP baseline SceneTree structures
 var oop_container: Node3D = null
 var oop_nodes: Array[MeshInstance3D] = []
 var oop_velocities: Array[Vector3] = []
 
-# Mittausmuuttujat
+# Per-frame timing metrics (microseconds)
 var last_oop_tick_us: float = 0.0
 var last_sync_us: float = 0.0
 
-# Automaattinen tilakone
+## Automated benchmark execution states.
 enum BenchState { COUNTDOWN, WARMING_UP, SAMPLING, FINISHED }
 var state: BenchState = BenchState.COUNTDOWN
 var timer: float = 0.0
@@ -39,11 +45,13 @@ var summary_results: Array[Dictionary] = []
 var hud_label: RichTextLabel
 var progress_bar: ProgressBar
 
+
+## Initializes execution priority, uniform cube resources, telemetry HUD, and benchmark state.
 func _ready() -> void:
+	process_priority = -10
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.apply_settings()
 		sample_duration = GameSettings.get_sample_duration()
-		# Haetaan asetuksissa valittu konfiguraatio dynaamisesti
 		bench_configs = GameSettings.get_synthetic_configs(false)
 
 	_init_multi_type_resources()
@@ -53,7 +61,7 @@ func _ready() -> void:
 	oop_container.name = "OOP_Agents_Container"
 	add_child(oop_container)
 	
-	# Alustetaan HUD näyttämään heti ensimmäisen testin entiteettimäärää
+	# Pre-populate HUD entity count for the first queued step
 	if bench_configs.size() > 0:
 		entity_count = bench_configs[0]["count"]
 		current_variant = bench_configs[0]["variant"] as SimVariant
@@ -61,6 +69,8 @@ func _ready() -> void:
 	state = BenchState.COUNTDOWN
 	timer = 0.0
 
+
+## Aborts the benchmark run and returns to the Benchmark Hub when Escape is pressed.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
@@ -68,13 +78,15 @@ func _unhandled_input(event: InputEvent) -> void:
 				GameSettings.is_running_full_suite = false
 			get_tree().change_scene_to_file("res://benchmark_hub.tscn")
 
+
+## Creates five color-coded 12-triangle BoxMesh resources and corresponding MultiMeshInstance3D nodes.
 func _init_multi_type_resources() -> void:
 	var colors = [
-		Color(0.2, 0.85, 0.4), # Arkkityyppi 0: Vihreä kuutio
-		Color(0.2, 0.6, 1.0),  # Arkkityyppi 1: Sininen kuutio
-		Color(0.95, 0.6, 0.1), # Arkkityyppi 2: Oranssi kuutio
-		Color(0.9, 0.25, 0.3), # Arkkityyppi 3: Punainen kuutio
-		Color(0.7, 0.3, 0.95)  # Arkkityyppi 4: Violetti kuutio
+		Color(0.2, 0.85, 0.4), # Archetype 0: Green cube
+		Color(0.2, 0.6, 1.0),  # Archetype 1: Blue cube
+		Color(0.95, 0.6, 0.1), # Archetype 2: Orange cube
+		Color(0.9, 0.25, 0.3), # Archetype 3: Red cube
+		Color(0.7, 0.3, 0.95)  # Archetype 4: Purple cube
 	]
 	type_meshes.clear()
 	extra_mmis.clear()
@@ -101,6 +113,8 @@ func _init_multi_type_resources() -> void:
 		add_child(mmi)
 		extra_mmis.append(mmi)
 
+
+## Constructs the top-left overlay panel displaying live frame time, logic tick, and memory telemetry.
 func _build_telemetry_hud() -> void:
 	var canvas = CanvasLayer.new()
 	add_child(canvas)
@@ -134,6 +148,8 @@ func _build_telemetry_hud() -> void:
 	progress_bar.custom_minimum_size = Vector2(450, 20)
 	vbox.add_child(progress_bar)
 
+
+## Clears previous entities and spawns [param count] deterministic agents for [param variant].
 func _setup_simulation(count: int, variant: SimVariant) -> void:
 	entity_count = count
 	current_variant = variant
@@ -179,6 +195,8 @@ func _setup_simulation(count: int, variant: SimVariant) -> void:
 			oop_nodes.append(agent)
 			oop_velocities.append(vel)
 
+
+## Synchronizes MultiMesh buffers (DOD) or steps SceneTree nodes (OOP) and advances the state machine.
 func _process(delta: float) -> void:
 	if current_variant == SimVariant.DOD_SINGLE_MESH:
 		var t0 = Time.get_ticks_usec()
@@ -205,6 +223,8 @@ func _process(delta: float) -> void:
 	_update_benchmark_state_machine(delta)
 	_update_hud()
 
+
+## Advances the countdown, warm-up, and sampling state machine across all configured steps.
 func _update_benchmark_state_machine(delta: float) -> void:
 	timer += delta
 	
@@ -230,12 +250,11 @@ func _update_benchmark_state_machine(delta: float) -> void:
 				
 		BenchState.SAMPLING:
 			var total_steps = float(maxi(1, bench_configs.size()))
-			var step_progress = (timer / float(WARMUP_DURATION + sample_duration))
+			var step_progress = ((WARMUP_DURATION + timer) / float(WARMUP_DURATION + sample_duration))
 			progress_bar.value = ((float(step_index) + step_progress) / total_steps) * 100.0
 			
 			_record_frame_sample(delta)
 			
-			# Tottelee nyt dynaamista sample_duration-arvoa (ei 4.0s vakiota)
 			if timer >= sample_duration:
 				_finalize_step()
 				step_index += 1
@@ -244,6 +263,8 @@ func _update_benchmark_state_machine(delta: float) -> void:
 				else:
 					_finish_benchmark_and_return()
 
+
+## Configures the simulation for benchmark step [param idx] and enters the warm-up phase.
 func _start_step(idx: int) -> void:
 	var cfg = bench_configs[idx]
 	current_step_samples.clear()
@@ -251,6 +272,8 @@ func _start_step(idx: int) -> void:
 	state = BenchState.WARMING_UP
 	_setup_simulation(cfg["count"], cfg["variant"] as SimVariant)
 
+
+## Appends per-frame timing, node count, and OS working-set memory metrics for the active step.
 func _record_frame_sample(delta: float) -> void:
 	var is_oop = (current_variant == SimVariant.OOP_SINGLE_MESH or current_variant == SimVariant.OOP_MULTI_MESH)
 	var logic_us = last_oop_tick_us if is_oop else bridge.get_last_tick_microseconds()
@@ -266,13 +289,14 @@ func _record_frame_sample(delta: float) -> void:
 		"nodes": int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	})
 
+
+## Exports raw per-frame CSV data and computes statistical summary metrics for the completed step.
 func _finalize_step() -> void:
 	var cfg = bench_configs[step_index]
 	var n = current_step_samples.size()
 	if n == 0:
 		return
 		
-	# Haetaan aktiivisen session raw_frames-kansio
 	var raw_dir: String = "res://user_files"
 	if typeof(GameSettings) != TYPE_NIL:
 		raw_dir = GameSettings.get_current_raw_frames_folder()
@@ -342,6 +366,8 @@ func _finalize_step() -> void:
 		"ram_mb": current_step_samples[0]["ram_mb"]
 	})
 
+
+## Persists summary results to [GameSettings] and advances the benchmark suite.
 func _finish_benchmark_and_return() -> void:
 	state = BenchState.FINISHED
 	set_process(false)
@@ -350,6 +376,8 @@ func _finish_benchmark_and_return() -> void:
 		GameSettings.append_summary_results(summary_results)
 		GameSettings.finish_current_benchmark()
 
+
+## Refreshes the on-screen telemetry HUD with current frame and simulation statistics.
 func _update_hud() -> void:
 	if state == BenchState.FINISHED:
 		return
@@ -373,7 +401,6 @@ func _update_hud() -> void:
 	var safe_idx = clampi(step_index, 0, maxi(0, bench_configs.size() - 1))
 	var cfg_name = bench_configs[safe_idx]["name"] if bench_configs.size() > 0 else "None"
 	
-	# Muotoillaan aktiiviset asetukset suoraan HUD-paneeliin
 	var workload_str = "Standard (1k-10k)"
 	if typeof(GameSettings) != TYPE_NIL:
 		match GameSettings.synthetic_workload:
@@ -394,6 +421,8 @@ func _update_hud() -> void:
 	txt += "[color=gray][i]Press [ESC] at any time to abort.[/i][/color]"
 	hud_label.text = txt
 
+
+## Advances all OOP MeshInstance3D agents linearly and reflects off [-50, 50] arena bounds.
 func _tick_oop(delta: float) -> void:
 	for i in range(oop_nodes.size()):
 		var node: MeshInstance3D = oop_nodes[i]

@@ -1,3 +1,8 @@
+/**
+ * @file simulation.cpp
+ * @brief Implementation of SimulationWorld agent spawning, kinematics, and Simulation LOD updates.
+ */
+
 #include "core/simulation.hpp"
 #include <random>
 #include <cmath>
@@ -42,6 +47,16 @@ namespace kaharan::core {
     }
 
     namespace {
+        /**
+         * @brief Advances a single agent's position, optional steering heading, and arena bounds.
+         *
+         * @param xform    Mutable 48-byte transform matrix of the agent.
+         * @param vel      Mutable velocity vector of the agent.
+         * @param step_dt  Effective integration time step (scaled for amortized LOD tiers).
+         * @param sim_time Current accumulated simulation time in seconds.
+         * @param index    Entity index used to phase-shift steering oscillation.
+         * @param steering Applies 2D heading rotation when true.
+         */
         inline void step_agent(Transform3DData& xform, Vec3& vel, float step_dt, float sim_time, size_t index, bool steering) noexcept {
             if (steering) {
                 const float phase = static_cast<float>(index) * 0.0137f;
@@ -59,6 +74,7 @@ namespace kaharan::core {
             xform.origin_y += vel.y * step_dt;
             xform.origin_z += vel.z * step_dt;
 
+            // Symmetrical elastic boundary reflection within [-50.0, 50.0] world bounds
             if (xform.origin_x < -50.0f) {
                 xform.origin_x = -50.0f;
                 vel.x = -vel.x;
@@ -90,7 +106,7 @@ namespace kaharan::core {
         Transform3DData* __restrict transforms = m_registry.get_transforms_data();
         Vec3* __restrict velocities = m_registry.get_velocities_data();
 
-        // 1. Perustila (LOD pois): kaikki entiteetit päivitetään joka kehyksessä
+        // 1. Baseline mode (LOD disabled): update every entity at full frame rate
         if (!m_lod_enabled) {
             for (size_t i = 0; i < total; ++i) {
                 step_agent(transforms[i], velocities[i], delta_time, current_time, i, steering);
@@ -102,7 +118,7 @@ namespace kaharan::core {
             return;
         }
 
-        // 2. Simulation LOD -tila: etäisyyspohjainen luokittelu + porrastettu aikaviipalointi
+        // 2. Simulation LOD mode: radial distance classification + staggered time-slicing
         SimulationLOD* __restrict lods = m_registry.get_lods_data();
         const uint32_t frame_tick = ++m_tick_counter;
 

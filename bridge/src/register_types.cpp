@@ -1,3 +1,8 @@
+/**
+ * @file register_types.cpp
+ * @brief Implementation of GDExtension initialization hooks and C ABI entry point.
+ */
+
 #include "register_types.hpp"
 #include "bridge/simulation_bridge.hpp"
 
@@ -22,6 +27,14 @@ void uninitialize_kaharan_bridge_module(ModuleInitializationLevel p_level) {
 }
 
 extern "C" {
+    /**
+     * @brief Dynamic library C ABI entry point invoked by Godot Engine 4 on load.
+     *
+     * @param p_get_proc_address Function pointer resolver provided by the host engine.
+     * @param p_library          Opaque pointer to the loaded GDExtension library instance.
+     * @param r_initialization   Initialization configuration struct populated by this binding.
+     * @return True if GDExtension initialization succeeded; false otherwise.
+     */
     GDExtensionBool GDE_EXPORT kaharan_bridge_init(
         GDExtensionInterfaceGetProcAddress p_get_proc_address,
         const GDExtensionClassLibraryPtr p_library,

@@ -55,6 +55,27 @@ At 10 000 rendered 5-mesh entities, the C++20 SoA simulation loop executes **332
 | **Rendered (5-Mesh)** | 294 871 | 20 311 | **14.52x** | 105 735 | 4 449 | **23.77x** |
 | **Headless (Pure CPU)** | 871 819 | 32 409 | **26.90x** | 712 679 | 4 742 | **150.29x** |
 
+### 3. Standalone Native C++20 CLI Micro-Benchmark (Zero Godot)
+
+Executed via `kaharan_bench.exe` (`x64-Release`, 2 000 timed frames after 100-frame warm-up) directly against `kaharan_core.lib` with zero Godot Engine or GDExtension dependencies:
+
+| Entity Count | Kinematics Mode | Simulation LOD | Avg Tick (µs) | Cost / Entity (ns) | Max CPU Throughput | LOD Savings |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: |
+| **1 000** | Linear | OFF | 2.07 | 2.07 ns | 482 567 FPS | — |
+| **5 000** | Linear | OFF | 9.20 | 1.84 ns | 108 748 FPS | — |
+| **10 000** | Linear | OFF | 18.37 | 1.84 ns | 54 439 FPS | — |
+| **25 000** | Linear | OFF | 46.46 | 1.86 ns | 21 523 FPS | — |
+| **50 000** | Linear | OFF | 98.01 | 1.96 ns | 10 203 FPS | — |
+| **100 000** | Linear | OFF | 214.37 | 2.14 ns | 4 665 FPS | — |
+| **10 000** | Steering | OFF | 242.21 | 24.22 ns | 4 129 FPS | — |
+| **10 000** | Steering | **ON** | **158.52** | **15.85 ns** | **6 308 FPS** | **-34.6% (1.53x)** |
+| **25 000** | Steering | OFF | 605.52 | 24.22 ns | 1 651 FPS | — |
+| **25 000** | Steering | **ON** | **395.39** | **15.82 ns** | **2 529 FPS** | **-34.7% (1.53x)** |
+| **100 000** | Steering | OFF | 2 310.87 | 23.11 ns | 433 FPS | — |
+| **100 000** | Steering | **ON** | **1 478.03** | **14.78 ns** | **677 FPS** | **-36.0% (1.56x)** |
+
+Comparing native CLI execution (`18.37 µs` at 10k linear entities) against Godot `Headless DOD` (`21.63–21.64 µs`) confirms a minimal **~3.3 µs** integration/cache-coherency overhead across the GDExtension boundary.
+
 ## Build Instructions
 
 ### Prerequisites
@@ -76,4 +97,4 @@ At 10 000 rendered 5-mesh entities, the C++20 SoA simulation loop executes **332
 ### Running & Exporting the Godot Benchmark Suite
 1. Open `godot_project/project.godot` in Godot 4.6.
 2. Press F5 to launch the main menu, or export a standalone Windows Desktop (`x86_64`) executable with Export With Debug disabled.
-3. All benchmark runs automatically generate timestamped session folders under `benchmark_runs/` (or `res://user_files/runs/` in the editor) containing `manifest.json`, `summary.csv`, and per-frame raw telemetry (``).
+3. All benchmark runs automatically generate timestamped session folders under `benchmark_runs/` (or `res://user_files/runs/` in the editor) containing `manifest.json`, `summary.csv`, and per-frame raw telemetry (`raw_frames/`).

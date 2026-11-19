@@ -57,7 +57,7 @@ At 10 000 rendered 5-mesh entities, the C++20 SoA simulation loop executes **332
 
 ### 3. Standalone Native C++20 CLI Micro-Benchmark (Zero Godot)
 
-Executed via `kaharan_bench.exe` (`x64-Release`, 2 000 timed frames after 100-frame warm-up) directly against `kaharan_core.lib` with zero Godot Engine or GDExtension dependencies:
+Executed via `simulation_benchmark.exe` (`x64-Release`, 2 000 timed frames after 100-frame warm-up) directly against `kaharan_core.lib` with zero Godot Engine or GDExtension dependencies:
 
 | Entity Count | Kinematics Mode | Simulation LOD | Avg Tick (µs) | Cost / Entity (ns) | Max CPU Throughput | LOD Savings |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -91,7 +91,7 @@ Comparing native CLI execution (`18.37 µs` at 10k linear entities) against Godo
 
 3. Select the `x64-Release` configuration and build the solution (`Ctrl + Shift + B`):
 	- Builds `kaharan_core.lib` (static simulation core)
-	- Builds `kaharan_bench.exe` (standalone native CLI benchmark)
+	- Builds `simulation_benchmark.exe` (standalone native CLI benchmark)
 	- Builds and copies `simulation_bridge.dll` directly into `godot_project/bin/`
 
 ### Running & Exporting the Godot Benchmark Suite

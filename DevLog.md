@@ -134,5 +134,5 @@ Executed in a stabilized standalone Windows 10 Release build (`Godot 4.6.3-stabl
 ### Standalone Native C++20 CLI Verification (`simulation_benchmark.exe`)
 Executed natively against `kaharan_core.lib` with zero Godot dependencies (2 000 timed frames after warm-up):
 
-* **Linear Kinematics (`1k–100k`):** `2.07 µs` (1k), `9.20 µs` (5k), `18.37 µs` (10k), `46.46 µs` (25k), `98.01 µs` (50k), and `214.37 µs` (100k) — scaling linearly at **1.84–2.14 ns/entity** and confirming a negligible **+0.34–3.27 µs** overhead inside Godot's `Headless DOD` bridge (`2.41–21.64 µs`)[cite: 26].
-* **Steering Kinematics + Simulation LOD:** Reduced tick times by **34.6%** at 10k (`242.21 µs` $\rightarrow$ `158.52 µs`), **34.7%** at 25k (`605.52 µs` $\rightarrow$ `395.39 µs`), and **36.0%** at 100k (`2 310.87 µs` $\rightarrow$ `1 478.03 µs`, staying under half of a 3.0 ms subsystem budget at 100 000 active steering agents)[cite: 26].
+* **Linear Kinematics (`1k–100k`):** `2.07 µs` (1k), `9.20 µs` (5k), `18.37 µs` (10k), `46.46 µs` (25k), `98.01 µs` (50k), and `214.37 µs` (100k) — scaling linearly at **1.84–2.14 ns/entity** and confirming a negligible **+0.34–3.27 µs** overhead inside Godot's `Headless DOD` bridge (`2.41–21.64 µs`).
+* **Steering Kinematics + Simulation LOD:** Reduced tick times by **34.6%** at 10k (`242.21 µs` $\rightarrow$ `158.52 µs`), **34.7%** at 25k (`605.52 µs` $\rightarrow$ `395.39 µs`), and **36.0%** at 100k (`2 310.87 µs` $\rightarrow$ `1 478.03 µs`, staying under half of a 3.0 ms subsystem budget at 100 000 active steering agents).

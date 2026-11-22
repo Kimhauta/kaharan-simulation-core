@@ -57,7 +57,7 @@ At 10 000 rendered 5-mesh entities, the C++20 SoA simulation loop executes **332
 
 ### 3. Standalone Native C++20 CLI Micro-Benchmark (Zero Godot)
 
-Executed via `simulation_benchmark.exe` (`x64-Release`, 2 000 timed frames after 100-frame warm-up) directly against `kaharan_core.lib` with zero Godot Engine or GDExtension dependencies:
+Executed via `simulation_benchmark.exe` (`x64-Release`, 2 000 timed frames after 100-frame warm-up) directly against `simulation_core.lib` with zero Godot Engine or GDExtension dependencies:
 
 | Entity Count | Kinematics Mode | Simulation LOD | Avg Tick (µs) | Cost / Entity (ns) | Max CPU Throughput | LOD Savings |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -83,18 +83,25 @@ Comparing native CLI execution (`18.37 µs` at 10k linear entities) against Godo
 * **Godot Engine 4.6+** (Standard 64-bit edition)
 * **Git** (with initialized `external/godot-cpp` submodule)
 
+## Build Instructions
+
+### Prerequisites
+* **Visual Studio 2022** (Desktop development with C++ workload, MSVC v143, CMake tools)
+* **Godot Engine 4.6+** (Standard 64-bit edition)
+* **Git** (with initialized `extern/godot-cpp` submodule)
+
 ### Compiling the C++20 Core & GDExtension Bridge
 1. Clone the repository with submodules:
    ```bash
-   git clone --recurse-submodules [https://github.com/Kimhauta/Kaharan-simulation-core.git](https://github.com/Kimhauta/Kaharan-simulation-core.git)
-2. Open the root folder in Visual Studio 2022 as a CMake project.
-
-3. Select the `x64-Release` configuration and build the solution (`Ctrl + Shift + B`):
-	- Builds `kaharan_core.lib` (static simulation core)
-	- Builds `simulation_benchmark.exe` (standalone native CLI benchmark)
-	- Builds and copies `simulation_bridge.dll` directly into `godot_project/bin/`
+   git clone --recurse-submodules https://github.com/Kimhauta/Kaharan-simulation-core.git
+   ```
+2. Open the root folder in **Visual Studio 2022** as a CMake project.
+3. Select the **`x64-Release`** configuration and build the solution (`Ctrl + Shift + B`):
+   * Builds `simulation_core.lib` (static simulation core)
+   * Builds `simulation_benchmark.exe` (standalone native CLI benchmark)
+   * Builds and copies `simulation_bridge.dll` directly into `godot_project/bin/`
 
 ### Running & Exporting the Godot Benchmark Suite
 1. Open `godot_project/project.godot` in Godot 4.6.
-2. Press F5 to launch the main menu, or export a standalone Windows Desktop (`x86_64`) executable with Export With Debug disabled.
+2. Press **F5** to launch the main menu, or export a standalone **Windows Desktop (`x86_64`)** executable with **Export With Debug** disabled.
 3. All benchmark runs automatically generate timestamped session folders under `benchmark_runs/` (or `res://user_files/runs/` in the editor) containing `manifest.json`, `summary.csv`, and per-frame raw telemetry (`raw_frames/`).

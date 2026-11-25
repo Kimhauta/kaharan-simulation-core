@@ -35,7 +35,7 @@ Measured in a controlled standalone Release build (`run_2026-11-19_15-51-32_full
 
 | Test Scenario | Avg FPS | 1% Low FPS | StdDev (ms) | Sim Logic (µs) | GPU Sync (µs) | Process RAM (MB) | Scene Nodes |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Synthetic DOD 1-Mesh (Rendered)** | 715.40 | 660.00 | 0.0873 | 22.09 | 237.29 | 320.64 | 20 |
+| **Synthetic DOD 1-Mesh (Rendered)** | 715.39 | 659.98 | 0.0873 | 22.09 | 237.29 | 320.64 | 20 |
 | **Synthetic OOP 1-Mesh (Rendered)** | 60.43 | 55.38 | 0.5654 | 7 442.14 | 0.00 | 373.89 | 10 020 |
 | **Synthetic DOD 5-Mesh (Rendered)** | 704.23 | 599.99 | 0.0903 | 22.19 | 248.63 | 322.27 | 20 |
 | **Synthetic OOP 5-Mesh (Rendered)** | 59.35 | 55.38 | 0.5662 | 7 384.74 | 0.00 | 375.97 | 10 020 |
@@ -46,7 +46,7 @@ Measured in a controlled standalone Release build (`run_2026-11-19_15-51-32_full
 | **3-Room Fly-Through DOD Base** | 394.86 | 361.93 | 0.0897 | 209.78 | 282.10 | 410.74 | 56 |
 | **3-Room Fly-Through DOD + LOD** | 392.43 | 360.00 | 0.0923 | 150.94 | 282.82 | 389.73 | 56 |
 
-At 10 000 rendered 5-mesh entities, the C++20 SoA simulation loop executes **332.8x faster** than GDScript (`22.19 µs` vs. `7 384.74 µs`), delivering an **11.87x higher frame rate** (`704.24` vs. `59.35 FPS`) and **6.27x tighter frame pacing** (`0.090 ms` vs. `0.566 ms`) while reducing `SceneTree` node count from 10 020 to 20 and saving **53.70 MB** of process RAM. In the 3-room Fly-Through with trigonometric steering kinematics, Simulation LOD reduces C++ logic execution time by **28.0%** (`209.78 µs` to `150.94 µs`, **89.8x** faster than OOP Base) and OOP logic time by **32.8%** (`13.56 ms` to `9.11 ms`).
+At 10 000 rendered 5-mesh entities, the C++20 SoA simulation loop executes **332.8x faster** than GDScript (`22.19 µs` vs. `7 384.74 µs`), delivering an **11.87x higher frame rate** (`704.23` vs. `59.35 FPS`) and **6.27x tighter frame pacing** (`0.090 ms` vs. `0.566 ms`) while reducing `SceneTree` node count from 10 020 to 20 and saving **53.70 MB** of process RAM. In the 3-room Fly-Through with trigonometric steering kinematics, Simulation LOD reduces C++ logic execution time by **28.0%** (`209.78 µs` to `150.94 µs`, **89.8x** faster than OOP Base) and OOP logic time by **32.8%** (`13.56 ms` to `9.11 ms`).
 
 ### 2. Dynamic Ramp-Up Breaking Points (Constant Linear `2 000 / s`)
 
@@ -75,13 +75,6 @@ Executed via `simulation_benchmark.exe` (`x64-Release`, 2 000 timed frames after
 | **100 000** | Steering | **ON** | **1 478.03** | **14.78 ns** | **677 FPS** | **-36.0% (1.56x)** |
 
 Comparing native CLI execution (`18.37 µs` at 10k linear entities) against Godot `Headless DOD` (`21.63–21.64 µs`) confirms a minimal **~3.3 µs** integration/cache-coherency overhead across the GDExtension boundary.
-
-## Build Instructions
-
-### Prerequisites
-* **Visual Studio 2022** (Desktop development with C++ workload, MSVC v143, CMake tools)
-* **Godot Engine 4.6+** (Standard 64-bit edition)
-* **Git** (with initialized `external/godot-cpp` submodule)
 
 ## Build Instructions
 

@@ -22,7 +22,7 @@ This log documents the architectural milestones, implementation decisions, metho
 ## Milestone 2: GDExtension Bridge Integration (2026-10-19)
 
 ### Implementation & Architecture
-* Added `godot-cpp` (v4.6) as a Git submodule (`external/godot-cpp`).
+* Added `godot-cpp` (v4.6) as a Git submodule (`extern/godot-cpp`).
 * Implemented the `SimulationBridge` node class and C ABI library entry point (`kaharan_bridge_init`).
 * Created the `.gdextension` configuration manifest for Godot 4.
 
@@ -117,7 +117,7 @@ This log documents the architectural milestones, implementation decisions, metho
 Executed in a stabilized standalone Windows 10 Release build (`Godot 4.6.3-stable`, `i7-6700K @ 4.00 GHz`, `GTX 1070 8 GB`, V-Sync OFF) totaling **4 449 730 sampled frames** over **2 hours 16 minutes 43 seconds** (`300 s` per synthetic step, `75 s` per 3-Room Fly-Through pass, `Constant Linear 2 000 / s` Ramp-Up):
 
 * **Synthetic 10 000 Entities (5-Mesh Rendered, 300 s soak):**
-  * **DOD:** **704.24 FPS** (`1% Low 600.00`, `StdDev 0.0903 ms`, `Logic 22.19 µs`, `Sync 248.63 µs`, `RAM 322.27 MB`, `20 nodes`).
+  * **DOD:** **704.23 FPS** (`1% Low 599.99`, `StdDev 0.0903 ms`, `Logic 22.19 µs`, `Sync 248.63 µs`, `RAM 322.27 MB`, `20 nodes`).
   * **OOP:** **59.35 FPS** (`1% Low 55.38`, `StdDev 0.5662 ms`, `Logic 7 384.74 µs`, `RAM 375.97 MB`, `10 020 nodes`).
   * **Result:** **332.8x** faster simulation logic, **27.3x** faster total simulation+sync, **11.87x** higher FPS, **6.27x** tighter frame pacing, and **53.70 MB** lower process RAM.
 * **Synthetic 10 000 Entities (5-Mesh Headless, 300 s soak):**
@@ -132,7 +132,7 @@ Executed in a stabilized standalone Windows 10 Release build (`Godot 4.6.3-stabl
   * `DOD + LOD`: **392.43 FPS** (`Logic 150.94 µs`, `Sync 282.82 µs`, **-28.0%** logic time vs. DOD Base, **89.8x** faster logic and **21.1x** lower jitter than OOP Base).
 
 ### Standalone Native C++20 CLI Verification (`simulation_benchmark.exe`)
-Executed natively against `simulation_core_.lib` with zero Godot dependencies (2 000 timed frames after warm-up):
+Executed natively against `simulation_core.lib` with zero Godot dependencies (2 000 timed frames after warm-up):
 
 * **Linear Kinematics (`1k–100k`):** `2.07 µs` (1k), `9.20 µs` (5k), `18.37 µs` (10k), `46.46 µs` (25k), `98.01 µs` (50k), and `214.37 µs` (100k) — scaling linearly at **1.84–2.14 ns/entity** and confirming a negligible **+0.34–3.27 µs** overhead inside Godot's `Headless DOD` bridge (`2.41–21.64 µs`).
 * **Steering Kinematics + Simulation LOD:** Reduced tick times by **34.6%** at 10k (`242.21 µs` $\rightarrow$ `158.52 µs`), **34.7%** at 25k (`605.52 µs` $\rightarrow$ `395.39 µs`), and **36.0%** at 100k (`2 310.87 µs` $\rightarrow$ `1 478.03 µs`, staying under half of a 3.0 ms subsystem budget at 100 000 active steering agents).

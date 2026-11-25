@@ -1,8 +1,8 @@
-## Primary entry menu for Kaharan Simulation Core[cite: 22].
+## Primary entry menu for Kaharan Simulation Core.
 ##
 ## Builds the programmatic dark-themed UI, verifies that the C++20 GDExtension
 ## SimulationBridge class is registered in ClassDB, and provides navigation to
-## the interactive sandbox, benchmark hub, analytics view, and settings menu[cite: 22].
+## the interactive sandbox, benchmark hub, analytics view, and settings menu.
 extends Control
 
 const PLAYABLE_SCENE_PATH: String = "res://greybox_level.tscn"
@@ -10,11 +10,11 @@ const BENCHMARK_HUB_PATH: String = "res://benchmark_hub.tscn"
 const RESULTS_SCENE_PATH: String = "res://benchmark_results.tscn"
 const SETTINGS_SCENE_PATH: String = "res://settings_menu.tscn"
 
-## Displays scene transition errors if a target scene cannot be found[cite: 22].
+## Displays scene transition errors if a target scene cannot be found.
 var status_label: Label
 
 
-## Initializes the menu by resetting mouse capture and constructing the UI[cite: 22].
+## Initializes the menu by resetting mouse capture and constructing the UI.
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	for child in get_children():
@@ -22,7 +22,7 @@ func _ready() -> void:
 	_build_main_menu_ui()
 
 
-## Constructs the centered menu card, status indicators, and navigation buttons[cite: 22].
+## Constructs the centered menu card, status indicators, and navigation buttons.
 func _build_main_menu_ui() -> void:
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.067, 0.09, 1.0)
@@ -103,7 +103,7 @@ func _build_main_menu_ui() -> void:
 	vbox.add_child(status_label)
 
 
-## Creates a styled menu button with a colored left accent border and connects its signal[cite: 22].
+## Creates a styled menu button with a colored left accent border and connects its signal.
 func _add_menu_button(parent: Control, label_text: String, accent: Color, callback: Callable) -> void:
 	var btn = Button.new()
 	btn.text = label_text
@@ -127,7 +127,7 @@ func _add_menu_button(parent: Control, label_text: String, accent: Color, callba
 	parent.add_child(btn)
 
 
-## Launches the 3-room level in interactive free-roam sandbox mode[cite: 22].
+## Launches the 3-room level in interactive free-roam sandbox mode.
 func _on_play_pressed() -> void:
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.is_running_full_suite = false
@@ -135,22 +135,22 @@ func _on_play_pressed() -> void:
 	_change_scene_safe(PLAYABLE_SCENE_PATH, "Interactive demo scene (greybox_level.tscn) not found.")
 
 
-## Navigates to the Benchmark Suite Hub[cite: 22].
+## Navigates to the Benchmark Suite Hub.
 func _on_benchmark_pressed() -> void:
 	_change_scene_safe(BENCHMARK_HUB_PATH, "Benchmark Hub scene not found.")
 
 
-## Navigates to the Benchmark Results and Analytics dashboard[cite: 22].
+## Navigates to the Benchmark Results and Analytics dashboard.
 func _on_results_pressed() -> void:
 	_change_scene_safe(RESULTS_SCENE_PATH, "Results scene not found.")
 
 
-## Navigates to the Engine & Benchmark Settings screen[cite: 22].
+## Navigates to the Engine & Benchmark Settings screen.
 func _on_settings_pressed() -> void:
 	_change_scene_safe(SETTINGS_SCENE_PATH, "Settings scene not found.")
 
 
-## Safely transitions to [param target_path] if the scene resource exists[cite: 22].
+## Safely transitions to [param target_path] if the scene resource exists.
 func _change_scene_safe(target_path: String, fallback_msg: String) -> void:
 	if ResourceLoader.exists(target_path):
 		get_tree().change_scene_to_file(target_path)

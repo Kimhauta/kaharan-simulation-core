@@ -1,8 +1,8 @@
-## Central launcher hub for individual benchmark stages and the full 5-stage suite[cite: 19].
+## Central launcher hub for individual benchmark stages and the full 5-stage suite.
 ##
 ## Displays active hardware and profile metadata and presents a 3x2 grid of cards
 ## for running Rendered/Headless Synthetic A/B tests, Dynamic Ramp-Up saturation
-## tests, the 3-Room Fly-Through LOD tour, or the automated full-suite pipeline[cite: 19].
+## tests, the 3-Room Fly-Through LOD tour, or the automated full-suite pipeline.
 extends Control
 
 const MAIN_MENU_PATH = "res://main_menu.tscn"
@@ -16,7 +16,7 @@ const SCENE_RAMP_HEADLESS = "res://bench_ramp_up_headless.tscn"
 const SCENE_FLYTHROUGH = "res://greybox_level.tscn"
 
 
-## Ensures cursor visibility and constructs the hub UI layout[cite: 19].
+## Ensures cursor visibility and constructs the hub UI layout.
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	for child in get_children():
@@ -24,14 +24,14 @@ func _ready() -> void:
 	_build_hub_ui()
 
 
-## Navigates back to the main menu when Escape is pressed[cite: 19].
+## Navigates back to the main menu when Escape is pressed.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			get_tree().change_scene_to_file(MAIN_MENU_PATH)
 
 
-## Builds the header bar, hardware summary banner, 3x2 test grid, and footer[cite: 19].
+## Builds the header bar, hardware summary banner, 3x2 test grid, and footer.
 func _build_hub_ui() -> void:
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.067, 0.09, 1.0)
@@ -171,7 +171,7 @@ func _build_hub_ui() -> void:
 	footer.add_child(btn_results)
 
 
-## Adds an individual benchmark card with title, description, and action button[cite: 19].
+## Adds an individual benchmark card with title, description, and action button.
 func _add_suite_card(parent: Control, card_title: String, desc: String, btn_text: String, accent: Color, callback: Callable) -> void:
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -214,7 +214,7 @@ func _add_suite_card(parent: Control, card_title: String, desc: String, btn_text
 	vbox.add_child(btn)
 
 
-## Formats detected CPU, GPU, build mode, and active profile settings as BBCode[cite: 19].
+## Formats detected CPU, GPU, build mode, and active profile settings as BBCode.
 func _get_environment_summary_bbcode() -> String:
 	var build_type = "[color=#f39c12]Editor / Debug Build[/color]" if OS.has_feature("editor") else "[color=#2ecc71]Exported Release Build[/color]"
 	var vsync_str = "ON" if DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED else "OFF"
@@ -228,7 +228,7 @@ func _get_environment_summary_bbcode() -> String:
 	]
 
 
-## Creates a dedicated session folder and starts a single benchmark scene[cite: 19].
+## Creates a dedicated session folder and starts a single benchmark scene.
 func _run_single_scene(scene_path: String, label: String) -> void:
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.is_running_full_suite = false
@@ -236,7 +236,7 @@ func _run_single_scene(scene_path: String, label: String) -> void:
 	get_tree().change_scene_to_file(scene_path)
 
 
-## Launches the 3-room level directly in 4-pass automated Fly-Through benchmark mode[cite: 19].
+## Launches the 3-room level directly in 4-pass automated Fly-Through benchmark mode.
 func _on_run_flythrough_pressed() -> void:
 	if typeof(GameSettings) != TYPE_NIL:
 		GameSettings.is_running_full_suite = false
@@ -245,7 +245,7 @@ func _on_run_flythrough_pressed() -> void:
 	get_tree().change_scene_to_file(SCENE_FLYTHROUGH)
 
 
-## Enqueues and executes all five benchmark stages sequentially under one session[cite: 19].
+## Enqueues and executes all five benchmark stages sequentially under one session.
 func _on_run_full_suite_pressed() -> void:
 	var full_playlist: Array[String] = [
 		SCENE_SYNTHETIC_RENDER,

@@ -1,7 +1,7 @@
-## Configuration screen for display, synthetic A/B, and dynamic Ramp-Up parameters[cite: 23].
+## Configuration screen for display, synthetic A/B, and dynamic Ramp-Up parameters.
 ##
 ## Programmatically builds a three-column settings interface bound to the global
-## [GameSettings] singleton and persists user choices to [code]user://settings.cfg[/code][cite: 23].
+## [GameSettings] singleton and persists user choices to [code]user://settings.cfg[/code].
 extends Control
 
 const MAIN_MENU_PATH: String = "res://main_menu.tscn"
@@ -21,11 +21,11 @@ var opt_ramp_mode: OptionButton
 var spin_base_rate: SpinBox
 var spin_accel_factor: SpinBox
 
-## Footer feedback label confirming save/reset operations[cite: 23].
+## Footer feedback label confirming save/reset operations.
 var status_label: Label
 
 
-## Constructs the settings UI and populates controls from [GameSettings][cite: 23].
+## Constructs the settings UI and populates controls from [GameSettings].
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	for child in get_children():
@@ -34,14 +34,14 @@ func _ready() -> void:
 	_load_from_game_settings()
 
 
-## Returns to the main menu when Escape is pressed[cite: 23].
+## Returns to the main menu when Escape is pressed.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			get_tree().change_scene_to_file(MAIN_MENU_PATH)
 
 
-## Builds the header, three parameter columns, and action footer[cite: 23].
+## Builds the header, three parameter columns, and action footer.
 func _build_settings_ui() -> void:
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.067, 0.09, 1.0)
@@ -183,7 +183,7 @@ func _build_settings_ui() -> void:
 	footer.add_child(btn_save)
 
 
-## Creates a bordered section card with a colored top accent bar[cite: 23].
+## Creates a bordered section card with a colored top accent bar.
 func _create_section_panel(parent: Control, sec_title: String, accent: Color) -> VBoxContainer:
 	var panel = PanelContainer.new()
 	panel.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -214,7 +214,7 @@ func _create_section_panel(parent: Control, sec_title: String, accent: Color) ->
 	return vbox
 
 
-## Wraps a form input control with a descriptive label above it[cite: 23].
+## Wraps a form input control with a descriptive label above it.
 func _add_labeled_row(parent: Control, label_text: String, ctrl: Control) -> void:
 	var box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
@@ -227,7 +227,7 @@ func _add_labeled_row(parent: Control, label_text: String, ctrl: Control) -> voi
 	parent.add_child(box)
 
 
-## Selects the item in [param opt] matching [param target_id][cite: 23].
+## Selects the item in [param opt] matching [param target_id].
 func _select_option_by_id(opt: OptionButton, target_id: int) -> void:
 	for i in range(opt.item_count):
 		if opt.get_item_id(i) == target_id:
@@ -236,7 +236,7 @@ func _select_option_by_id(opt: OptionButton, target_id: int) -> void:
 	opt.select(0)
 
 
-## Synchronizes UI widgets with current [GameSettings] values[cite: 23].
+## Synchronizes UI widgets with current [GameSettings] values.
 func _load_from_game_settings() -> void:
 	if typeof(GameSettings) == TYPE_NIL:
 		return
@@ -251,7 +251,7 @@ func _load_from_game_settings() -> void:
 	spin_accel_factor.value = GameSettings.ramp_acceleration_factor
 
 
-## Writes UI widget selections back to [GameSettings], saves to disk, and applies display rules[cite: 23].
+## Writes UI widget selections back to [GameSettings], saves to disk, and applies display rules.
 func _on_apply_and_save() -> void:
 	if typeof(GameSettings) == TYPE_NIL:
 		return
@@ -271,7 +271,7 @@ func _on_apply_and_save() -> void:
 	status_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.45))
 
 
-## Restores default benchmark parameters and persists them immediately[cite: 23].
+## Restores default benchmark parameters and persists them immediately.
 func _on_reset_defaults() -> void:
 	if typeof(GameSettings) == TYPE_NIL:
 		return

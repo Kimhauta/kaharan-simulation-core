@@ -1,8 +1,8 @@
-## Global Autoload singleton managing benchmark configuration, session storage, and suite orchestration[cite: 21].
+## Global Autoload singleton managing benchmark configuration, session storage, and suite orchestration.
 ##
 ## Persists display and workload settings to [code]user://settings.cfg[/code], generates timestamped
 ## session directories with [code]manifest.json[/code] and [code]summary.csv[/code] telemetry, and
-## drives multi-stage sequential benchmark runs[cite: 21].
+## drives multi-stage sequential benchmark runs.
 extends Node
 
 const SETTINGS_PATH: String = "user://settings.cfg"
@@ -47,14 +47,14 @@ var is_running_full_suite: bool = false
 var force_greybox_benchmark: bool = false
 
 
-## Loads saved settings from disk, applies window/V-Sync rules, and ensures output folders exist[cite: 21].
+## Loads saved settings from disk, applies window/V-Sync rules, and ensures output folders exist.
 func _ready() -> void:
 	load_settings()
 	apply_settings()
 	_ensure_runs_directory()
 
 
-## Applies V-Sync, window mode, and frame rate cap settings to the active engine instance[cite: 21].
+## Applies V-Sync, window mode, and frame rate cap settings to the active engine instance.
 func apply_settings() -> void:
 	if vsync_enabled:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
@@ -64,7 +64,7 @@ func apply_settings() -> void:
 	Engine.max_fps = max_fps_limit
 
 
-## Returns the per-step sampling duration in seconds for the selected benchmark profile[cite: 21].
+## Returns the per-step sampling duration in seconds for the selected benchmark profile.
 func get_sample_duration() -> float:
 	match benchmark_profile:
 		0: return 4.0
@@ -75,7 +75,7 @@ func get_sample_duration() -> float:
 
 # --- Dynamic Synthetic Test Matrix Generator ---
 
-## Generates the ordered list of synthetic A/B test step dictionaries for the active settings[cite: 21].
+## Generates the ordered list of synthetic A/B test step dictionaries for the active settings.
 func get_synthetic_configs(is_headless: bool = false) -> Array[Dictionary]:
 	var prefix = "Headless_" if is_headless else ""
 	var counts: Array[int] = []
@@ -119,13 +119,13 @@ func get_synthetic_configs(is_headless: bool = false) -> Array[Dictionary]:
 # SESSION MANAGEMENT & TIMESTAMPED RUN DIRECTORIES
 # ==============================================================================
 
-## Creates the base runs directory if it does not already exist[cite: 21].
+## Creates the base runs directory if it does not already exist.
 func _ensure_runs_directory() -> void:
 	if not DirAccess.dir_exists_absolute(get_runs_base_dir()):
 		DirAccess.make_dir_recursive_absolute(get_runs_base_dir())
 
 
-## Initializes a new timestamped session directory with [code]manifest.json[/code] and [code]summary.csv[/code][cite: 21].
+## Initializes a new timestamped session directory with [code]manifest.json[/code] and [code]summary.csv[/code].
 func create_new_session(custom_label: String = "run") -> String:
 	_ensure_runs_directory()
 	
@@ -156,19 +156,19 @@ func create_new_session(custom_label: String = "run") -> String:
 	return current_session_folder
 
 
-## Returns the active session folder path, creating a fallback session if none is active[cite: 21].
+## Returns the active session folder path, creating a fallback session if none is active.
 func ensure_session_exists(fallback_label: String = "manual") -> String:
 	if current_session_folder.is_empty() or not DirAccess.dir_exists_absolute(current_session_folder):
 		return create_new_session(fallback_label)
 	return current_session_folder
 
 
-## Returns the current session root directory path[cite: 21].
+## Returns the current session root directory path.
 func get_current_session_folder() -> String:
 	return ensure_session_exists("single_run")
 
 
-## Returns the [code]raw_frames/[/code] subdirectory path for per-frame CSV exports[cite: 21].
+## Returns the [code]raw_frames/[/code] subdirectory path for per-frame CSV exports.
 func get_current_raw_frames_folder() -> String:
 	var sess = get_current_session_folder()
 	var raw_dir = sess.path_join("raw_frames")
@@ -177,7 +177,7 @@ func get_current_raw_frames_folder() -> String:
 	return raw_dir
 
 
-## Populates hardware specifications and active configuration snapshot into [member current_manifest][cite: 21].
+## Populates hardware specifications and active configuration snapshot into [member current_manifest].
 func _init_session_manifest(_timestamp_str: String, label: String) -> void:
 	var workload_names = ["Standard (1k, 5k, 10k)", "Lightweight (500, 1k, 2.5k)", "Extreme (5k, 10k, 25k)"]
 	var mesh_mode_names = ["Full Matrix (1 & 5 Meshes)", "Single-Mesh Only (1 Draw Call)", "Multi-Mesh Only (5 Draw Calls)"]
@@ -218,7 +218,7 @@ func _init_session_manifest(_timestamp_str: String, label: String) -> void:
 	_save_manifest()
 
 
-## Serializes [member current_manifest] to [code]manifest.json[/code] in the active session directory[cite: 21].
+## Serializes [member current_manifest] to [code]manifest.json[/code] in the active session directory.
 func _save_manifest() -> void:
 	if current_session_folder.is_empty(): return
 	var manifest_path = current_session_folder.path_join("manifest.json")
@@ -228,7 +228,7 @@ func _save_manifest() -> void:
 		f.close()
 
 
-## Appends completed stage summary rows to the active session's [code]summary.csv[/code][cite: 21].
+## Appends completed stage summary rows to the active session's [code]summary.csv[/code].
 func append_summary_results(results: Array[Dictionary]) -> void:
 	var sess = get_current_session_folder()
 	var path = sess.path_join("summary.csv")
@@ -254,7 +254,7 @@ func append_summary_results(results: Array[Dictionary]) -> void:
 	_mirror_to_legacy_summary(results)
 
 
-## Appends summary records to the legacy root summary file[cite: 21].
+## Appends summary records to the legacy root summary file.
 func _mirror_to_legacy_summary(results: Array[Dictionary]) -> void:
 	var file_exists = FileAccess.file_exists(get_legacy_summary_path())
 	var f = FileAccess.open(get_legacy_summary_path(), FileAccess.READ_WRITE if file_exists else FileAccess.WRITE)
@@ -275,7 +275,7 @@ func _mirror_to_legacy_summary(results: Array[Dictionary]) -> void:
 # MULTI-STAGE SUITE ORCHESTRATOR
 # ==============================================================================
 
-## Starts an automated multi-scene benchmark run under a shared session folder[cite: 21].
+## Starts an automated multi-scene benchmark run under a shared session folder.
 func start_benchmark_suite(scene_paths: Array[String], session_label: String = "full_suite") -> void:
 	benchmark_queue = scene_paths.duplicate()
 	is_running_full_suite = true
@@ -283,7 +283,7 @@ func start_benchmark_suite(scene_paths: Array[String], session_label: String = "
 	advance_benchmark_suite()
 
 
-## Transitions to the next queued benchmark scene or opens the results screen when complete[cite: 21].
+## Transitions to the next queued benchmark scene or opens the results screen when complete.
 func advance_benchmark_suite() -> void:
 	if benchmark_queue.is_empty():
 		finalize_session()
@@ -296,7 +296,7 @@ func advance_benchmark_suite() -> void:
 		get_tree().change_scene_to_file(next_scene)
 
 
-## Called by each benchmark scene upon completion to advance the queue or finish the session[cite: 21].
+## Called by each benchmark scene upon completion to advance the queue or finish the session.
 func finish_current_benchmark() -> void:
 	if is_running_full_suite and not benchmark_queue.is_empty():
 		advance_benchmark_suite()
@@ -305,7 +305,7 @@ func finish_current_benchmark() -> void:
 		get_tree().change_scene_to_file("res://benchmark_results.tscn")
 
 
-## Marks the current session manifest as completed and writes the final end timestamp[cite: 21].
+## Marks the current session manifest as completed and writes the final end timestamp.
 func finalize_session() -> void:
 	is_running_full_suite = false
 	if not current_manifest.is_empty():
@@ -319,7 +319,7 @@ func finalize_session() -> void:
 # SESSION INDEXING & FILESYSTEM UTILITIES
 # ==============================================================================
 
-## Scans the runs directory and returns all valid session manifests sorted newest first[cite: 21].
+## Scans the runs directory and returns all valid session manifests sorted newest first.
 func get_all_run_sessions() -> Array[Dictionary]:
 	var runs: Array[Dictionary] = []
 	if not DirAccess.dir_exists_absolute(get_runs_base_dir()):
@@ -349,7 +349,7 @@ func get_all_run_sessions() -> Array[Dictionary]:
 	return runs
 
 
-## Opens the specified session directory in the host operating system's file explorer[cite: 21].
+## Opens the specified session directory in the host operating system's file explorer.
 func open_session_folder_in_os(folder_path: String = "") -> void:
 	var target = folder_path if not folder_path.is_empty() else current_session_folder
 	if target.is_empty():
@@ -358,7 +358,7 @@ func open_session_folder_in_os(folder_path: String = "") -> void:
 	OS.shell_open(global_path)
 
 
-## Permanently deletes a benchmark session directory and all its contents[cite: 21].
+## Permanently deletes a benchmark session directory and all its contents.
 func delete_session(folder_path: String) -> bool:
 	if not DirAccess.dir_exists_absolute(folder_path):
 		return false
@@ -370,7 +370,7 @@ func delete_session(folder_path: String) -> bool:
 	return true
 
 
-## Recursively removes files and subdirectories inside [param path][cite: 21].
+## Recursively removes files and subdirectories inside [param path].
 func _delete_dir_recursive(path: String) -> void:
 	var dir = DirAccess.open(path)
 	if dir:
@@ -392,7 +392,7 @@ func _delete_dir_recursive(path: String) -> void:
 # PERSISTENT CONFIGURATION STORAGE (settings.cfg)
 # ==============================================================================
 
-## Saves all current display and benchmark settings to [code]user://settings.cfg[/code][cite: 21].
+## Saves all current display and benchmark settings to [code]user://settings.cfg[/code].
 func save_settings() -> void:
 	var config = ConfigFile.new()
 	config.set_value("display", "vsync_enabled", vsync_enabled)
@@ -407,7 +407,7 @@ func save_settings() -> void:
 	config.save(SETTINGS_PATH)
 
 
-## Loads settings from [code]user://settings.cfg[/code], writing defaults if missing[cite: 21].
+## Loads settings from [code]user://settings.cfg[/code], writing defaults if missing.
 func load_settings() -> void:
 	var config = ConfigFile.new()
 	var err = config.load(SETTINGS_PATH)

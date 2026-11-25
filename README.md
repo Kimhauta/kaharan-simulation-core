@@ -13,7 +13,7 @@ The repository includes an automated 5-stage empirical benchmark suite comparing
 
 ## Core Architectural Features
 
-* **Engine-Agnostic C++20 Core:** Pure C++20 simulation library (`kaharan_core`) with zero dependencies on Godot headers, compiling both into a standalone CLI micro-benchmark executable and a Godot GDExtension dynamic library.
+* **Engine-Agnostic C++20 Core:** Pure C++20 simulation library (`simulation_core`) with zero dependencies on Godot headers, compiling both into a standalone CLI micro-benchmark executable and a Godot GDExtension dynamic library.
 * **Structure-of-Arrays (SoA) Registry:** Contiguous, pre-allocated memory buffers for entity IDs, transforms, velocities, and Simulation LOD states maximizing CPU L1/L2 cache line utilization and hardware prefetching.
 * **Zero-Copy MultiMesh Synchronization:** Each entity's spatial state is stored in an aligned 48-byte `Transform3DData` matrix matching Godot 4's row-interleaved $3 \times 4$ `MultiMesh` buffer contract, enabling single-pass `std::memcpy` transfers and memory slicing (`sync_to_multimesh_range`) across multiple visual archetypes.
 * **Spatial Simulation LOD (Level of Detail):** Distance-based 3-tier update frequency scaling (`LOD0_Full` every frame, `LOD1_Amortized` every 4th frame, `LOD2_Dormant` every 16th frame) with staggered index modulo scheduling (`(i + tick) & mask`) to eliminate frame-time spikes.
@@ -37,7 +37,7 @@ Measured in a controlled standalone Release build (`run_2026-11-19_15-51-32_full
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Synthetic DOD 1-Mesh (Rendered)** | 715.40 | 660.00 | 0.0873 | 22.09 | 237.29 | 320.64 | 20 |
 | **Synthetic OOP 1-Mesh (Rendered)** | 60.43 | 55.38 | 0.5654 | 7 442.14 | 0.00 | 373.89 | 10 020 |
-| **Synthetic DOD 5-Mesh (Rendered)** | 704.24 | 600.00 | 0.0903 | 22.19 | 248.63 | 322.27 | 20 |
+| **Synthetic DOD 5-Mesh (Rendered)** | 704.23 | 599.99 | 0.0903 | 22.19 | 248.63 | 322.27 | 20 |
 | **Synthetic OOP 5-Mesh (Rendered)** | 59.35 | 55.38 | 0.5662 | 7 384.74 | 0.00 | 375.97 | 10 020 |
 | **Synthetic DOD 5-Mesh (Headless)** | 960.49 | 798.08 | 0.1641 | 21.63 | 0.00 | 338.61 | 13 |
 | **Synthetic OOP 5-Mesh (Headless)** | 125.38 | 110.00 | 1.0567 | 6 041.52 | 0.00 | 464.73 | 10 013 |

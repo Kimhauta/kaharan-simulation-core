@@ -1,14 +1,14 @@
-## Interactive analytics and visualization dashboard for recorded benchmark sessions[cite: 20].
+## Interactive analytics and visualization dashboard for recorded benchmark sessions.
 ##
 ## Parses [code]manifest.json[/code], [code]summary.csv[/code], and per-frame Ramp-Up timelines
 ## to render comparative speedup tables, 2D frame-time saturation curves, frame-pacing
-## jitter ratings, and hardware environment snapshots[cite: 20].
+## jitter ratings, and hardware environment snapshots.
 extends Control
 
 const MAIN_MENU_PATH: String = "res://main_menu.tscn"
 
 
-## Resolves the base directory containing benchmark run folders[cite: 20].
+## Resolves the base directory containing benchmark run folders.
 func _get_runs_base_dir() -> String:
 	if typeof(GameSettings) != TYPE_NIL:
 		return GameSettings.get_runs_base_dir()
@@ -44,21 +44,21 @@ var lbl_ramp_metrics: Label
 var available_sessions: Array[Dictionary] = []
 
 
-## Builds the analytics UI and loads the most recent benchmark session[cite: 20].
+## Builds the analytics UI and loads the most recent benchmark session.
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	_build_ui_layout()
 	_refresh_session_list()
 
 
-## Returns to the main menu when Escape is pressed[cite: 20].
+## Returns to the main menu when Escape is pressed.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			_go_to_menu()
 
 
-## Transitions back to the main menu scene[cite: 20].
+## Transitions back to the main menu scene.
 func _go_to_menu() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_PATH)
 
@@ -67,7 +67,7 @@ func _go_to_menu() -> void:
 # PROGRAMMATIC UI LAYOUT CONSTRUCTION
 # ==============================================================================
 
-## Constructs the header bar, session selector, and tabbed analytics container[cite: 20].
+## Constructs the header bar, session selector, and tabbed analytics container.
 func _build_ui_layout() -> void:
 	# Background backdrop
 	var bg = ColorRect.new()
@@ -156,7 +156,7 @@ func _build_ui_layout() -> void:
 	_build_tab_manifest()
 
 
-## Builds the Summary Matrix & Speedup tab[cite: 20].
+## Builds the Summary Matrix & Speedup tab.
 func _build_tab_matrix() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.name = "Summary Matrix & Speedup"
@@ -170,7 +170,7 @@ func _build_tab_matrix() -> void:
 	scroll.add_child(txt_matrix)
 
 
-## Builds the Ramp-Up Curves (Timeline) tab with a custom 2D drawing canvas[cite: 20].
+## Builds the Ramp-Up Curves (Timeline) tab with a custom 2D drawing canvas.
 func _build_tab_ramp_curves() -> void:
 	var vbox = VBoxContainer.new()
 	vbox.name = "Ramp-Up Curves (Timeline)"
@@ -223,7 +223,7 @@ func _build_tab_ramp_curves() -> void:
 	vbox.add_child(lbl_ramp_metrics)
 
 
-## Builds the Stability & Frame Pacing tab[cite: 20].
+## Builds the Stability & Frame Pacing tab.
 func _build_tab_stability() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.name = "Stability & Frame Pacing"
@@ -237,7 +237,7 @@ func _build_tab_stability() -> void:
 	scroll.add_child(txt_stability)
 
 
-## Builds the Environment & Manifest metadata tab[cite: 20].
+## Builds the Environment & Manifest metadata tab.
 func _build_tab_manifest() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.name = "Environment & Manifest"
@@ -255,7 +255,7 @@ func _build_tab_manifest() -> void:
 # SESSION LOADING & MANAGEMENT
 # ==============================================================================
 
-## Reloads all available benchmark sessions into the dropdown selector[cite: 20].
+## Reloads all available benchmark sessions into the dropdown selector.
 func _refresh_session_list() -> void:
 	option_sessions.clear()
 	available_sessions.clear()
@@ -286,13 +286,13 @@ func _refresh_session_list() -> void:
 	_load_session(0)
 
 
-## Handles session selection changes from the dropdown menu[cite: 20].
+## Handles session selection changes from the dropdown menu.
 func _on_session_selected(idx: int) -> void:
 	if idx >= 0 and idx < available_sessions.size():
 		_load_session(idx)
 
 
-## Loads CSV and manifest data for the session at [param idx] and refreshes all tabs[cite: 20].
+## Loads CSV and manifest data for the session at [param idx] and refreshes all tabs.
 func _load_session(idx: int) -> void:
 	var sess = available_sessions[idx]
 	current_session_folder = sess.get("folder_path", "")
@@ -306,7 +306,7 @@ func _load_session(idx: int) -> void:
 	_update_ramp_curve_display()
 
 
-## Loads legacy summary data when no manifest-based session directories exist[cite: 20].
+## Loads legacy summary data when no manifest-based session directories exist.
 func _load_legacy_summary() -> void:
 	_load_summary_csv("res://user_files/benchmark_summary.dat")
 	_load_ramp_csvs()
@@ -316,7 +316,7 @@ func _load_legacy_summary() -> void:
 	_update_ramp_curve_display()
 
 
-## Clears all visualizations when no benchmark runs exist on disk[cite: 20].
+## Clears all visualizations when no benchmark runs exist on disk.
 func _display_empty_state() -> void:
 	txt_matrix.text = "[center][color=gray]No benchmark data found. Open Benchmark Hub to run a benchmark suite.[/color][/center]"
 	txt_stability.text = ""
@@ -327,13 +327,13 @@ func _display_empty_state() -> void:
 	graph_canvas.queue_redraw()
 
 
-## Opens the active session folder in the OS file manager[cite: 20].
+## Opens the active session folder in the OS file manager.
 func _on_open_in_os_pressed() -> void:
 	if typeof(GameSettings) != TYPE_NIL and not current_session_folder.is_empty():
 		GameSettings.open_session_folder_in_os(current_session_folder)
 
 
-## Deletes the currently selected session folder and refreshes the list[cite: 20].
+## Deletes the currently selected session folder and refreshes the list.
 func _on_delete_session_pressed() -> void:
 	if current_session_folder.is_empty(): return
 	if typeof(GameSettings) != TYPE_NIL:
@@ -345,7 +345,7 @@ func _on_delete_session_pressed() -> void:
 # TELEMETRY CSV PARSING
 # ==============================================================================
 
-## Parses [param file_path] into [member summary_rows] dictionaries keyed by column header[cite: 20].
+## Parses [param file_path] into [member summary_rows] dictionaries keyed by column header.
 func _load_summary_csv(file_path: String) -> void:
 	summary_rows.clear()
 	if not FileAccess.file_exists(file_path): return
@@ -372,7 +372,7 @@ func _load_summary_csv(file_path: String) -> void:
 		summary_rows.append(row)
 
 
-## Loads both rendered and headless Ramp-Up frame timelines for the active session[cite: 20].
+## Loads both rendered and headless Ramp-Up frame timelines for the active session.
 func _load_ramp_csvs() -> void:
 	ramp_rendered_points_dod.clear()
 	ramp_rendered_points_oop.clear()
@@ -392,7 +392,7 @@ func _load_ramp_csvs() -> void:
 	_parse_ramp_file(head_path, ramp_headless_points_dod, ramp_headless_points_oop)
 
 
-## Splits a Ramp-Up CSV timeline into DOD and OOP (EntityCount, FrameTime_ms) series[cite: 20].
+## Splits a Ramp-Up CSV timeline into DOD and OOP (EntityCount, FrameTime_ms) series.
 func _parse_ramp_file(path: String, out_dod: Array[Vector2], out_oop: Array[Vector2]) -> void:
 	if not FileAccess.file_exists(path): return
 	var f = FileAccess.open(path, FileAccess.READ)
@@ -422,7 +422,7 @@ func _parse_ramp_file(path: String, out_dod: Array[Vector2], out_oop: Array[Vect
 	_downsample_points(raw_oop, out_oop, 800)
 
 
-## Uniformly subsamples [param source] to at most [param max_pts] points for responsive 2D polyline rendering[cite: 20].
+## Uniformly subsamples [param source] to at most [param max_pts] points for responsive 2D polyline rendering.
 func _downsample_points(source: Array[Vector2], dest: Array[Vector2], max_pts: int) -> void:
 	var n = source.size()
 	if n <= max_pts:
@@ -439,7 +439,7 @@ func _downsample_points(source: Array[Vector2], dest: Array[Vector2], max_pts: i
 # TAB VIEW RENDERING
 # ==============================================================================
 
-## Renders the speedup highlight cards and full metrics BBCode table[cite: 20].
+## Renders the speedup highlight cards and full metrics BBCode table.
 func _render_matrix_tab() -> void:
 	if summary_rows.is_empty():
 		txt_matrix.text = "[color=yellow]No summary records found in this run.[/color]"
@@ -498,7 +498,7 @@ func _render_matrix_tab() -> void:
 	txt_matrix.text = bb
 
 
-## Renders the frame-pacing standard deviation and consistency rating table[cite: 20].
+## Renders the frame-pacing standard deviation and consistency rating table.
 func _render_stability_tab() -> void:
 	if summary_rows.is_empty():
 		txt_stability.text = "[color=yellow]No data available.[/color]"
@@ -539,7 +539,7 @@ func _render_stability_tab() -> void:
 	txt_stability.text = bb
 
 
-## Renders hardware metadata and benchmark settings recorded in [member current_manifest][cite: 20].
+## Renders hardware metadata and benchmark settings recorded in [member current_manifest].
 func _render_manifest_tab() -> void:
 	if current_manifest.is_empty():
 		txt_manifest.text = "[color=gray]No manifest data recorded for this session.[/color]"
@@ -579,7 +579,7 @@ func _render_manifest_tab() -> void:
 # RAMP-UP 2D TIMELINE VISUALIZATION (_DRAW)
 # ==============================================================================
 
-## Updates the saturation capacity summary label and triggers a 2D canvas redraw[cite: 20].
+## Updates the saturation capacity summary label and triggers a 2D canvas redraw.
 func _update_ramp_curve_display() -> void:
 	var is_rendered = (option_ramp_source.selected == 0)
 	var dod_pts = ramp_rendered_points_dod if is_rendered else ramp_headless_points_dod
@@ -597,7 +597,7 @@ func _update_ramp_curve_display() -> void:
 	graph_canvas.queue_redraw()
 
 
-## Custom 2D draw callback plotting DOD vs. OOP frame time against entity population[cite: 20].
+## Custom 2D draw callback plotting DOD vs. OOP frame time against entity population.
 func _on_graph_draw() -> void:
 	var rect = graph_canvas.get_rect()
 	var w = rect.size.x
